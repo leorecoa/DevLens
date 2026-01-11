@@ -1,0 +1,7 @@
+{
+  "name": "DevLens Intelligence Engine",
+  "description": "An advanced developer sourcing and analysis platform that uses Gemini 3 to audit GitHub profiles, compare technical talent, and manage recruitment pipelines.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

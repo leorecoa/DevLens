@@ -1,0 +1,31 @@
+{
+  "name": "devlens-intelligence-engine",
+  "version": "1.0.0",
+  "description": "Advanced developer sourcing and analysis platform powered by Gemini 3.",
+  "main": "index.tsx",
+  "scripts": {
+    "start": "servor",
+    "build": "echo 'Build script not configured for ESM-only projects' && exit 0"
+  },
+  "keywords": [
+    "gemini",
+    "ai",
+    "github",
+    "recruitment",
+    "react",
+    "typescript"
+  ],
+  "author": "DevLens",
+  "license": "MIT",
+  "dependencies": {
+    "@google/genai": "^1.35.0",
+    "lucide-react": "^0.562.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "recharts": "^3.6.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "tailwindcss": "^3.4.0"
+  }
+}
