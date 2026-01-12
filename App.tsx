@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Search, Github, Terminal, AlertCircle, Loader2, Sparkles, Swords, Users, Crown, CreditCard, Shield, ClipboardList, X, Target, Folders, Cpu, Database, Network, Binary, ShieldCheck, Activity } from 'lucide-react';
+import { Search, Github, Terminal, AlertCircle, Loader2, Sparkles, Swords, Users, Crown, CreditCard, Shield, ClipboardList, X, Target, Folders, Cpu, Database, Network, Binary, ShieldCheck, Activity, Wifi, Box, Fingerprint, Zap, Radar, Microscope, HardDrive, Globe, Code, Layers } from 'lucide-react';
 import { analyzeProfile, compareProfiles } from './services/geminiService';
 import { AppStatus, AIAnalysis, GitHubProfile, Repository, ComparisonAnalysis, UserSubscription, PipelineFolder, SavedCandidate } from './types';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
@@ -20,6 +19,7 @@ function App() {
   
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [loadingMessage, setLoadingMessage] = useState('');
+  const [loadingSubMessage, setLoadingSubMessage] = useState('');
   const [loadingStage, setLoadingStage] = useState(0); // 0: Fetch, 1: AI, 2: Finalize
   const [error, setError] = useState<string | null>(null);
   
@@ -72,15 +72,16 @@ function App() {
     }
     
     setStatus(AppStatus.LOADING);
-    setLoadingStage(0);
     setError(null);
     setComparison(null);
     setAnalysis(null);
     
     try {
       if (isCompareMode) {
-        setLoadingMessage('Fetching GitHub Data...');
         setLoadingStage(0);
+        setLoadingMessage('Establishing Uplink');
+        setLoadingSubMessage('Requesting secure GitHub API handshake and mapping dual identities...');
+        
         const [d1, d2] = await Promise.all([
           fetchGitHubData(username1),
           fetchGitHubData(username2)
@@ -91,25 +92,32 @@ function App() {
         setProfile2(d2.p);
         setRepos2(d2.r);
         
-        setLoadingMessage('Comparing Profiles & Simulating Battle...');
         setLoadingStage(1);
+        setLoadingMessage('Combat Simulation');
+        setLoadingSubMessage('Synthesizing technical DNA. Running side-by-side performance audits...');
         const compResult = await compareProfiles(username1, username2, jdInput);
         setComparison(compResult);
       } else {
-        setLoadingMessage('Fetching GitHub Data...');
         setLoadingStage(0);
+        setLoadingMessage('Fetching Profile Intel');
+        setLoadingSubMessage('Accessing repository metadata and contribution history shards...');
         const d1 = await fetchGitHubData(username1);
         setProfile1(d1.p);
         setRepos1(d1.r);
         
-        setLoadingMessage('Running Neural AI Analysis...');
         setLoadingStage(1);
+        setLoadingMessage('Neural AI Analysis');
+        setLoadingSubMessage('Gemini 3 probing skill matrix, coding consistency, and technical seniority...');
         const aiResult = await analyzeProfile(username1);
         setAnalysis(aiResult);
       }
       
-      setLoadingMessage('Finalizing Results...');
       setLoadingStage(2);
+      setLoadingMessage('Finalizing Dossier');
+      setLoadingSubMessage('Packaging encrypted intelligence for executive recruitment review...');
+      
+      await new Promise(resolve => setTimeout(resolve, 1200));
+
       setSub(prev => ({
         ...prev,
         creditsRemaining: prev.tier === 'PRO' ? prev.creditsRemaining : Math.max(0, prev.creditsRemaining - 1),
@@ -119,7 +127,7 @@ function App() {
       setStatus(AppStatus.SUCCESS);
     } catch (e: any) {
       console.error(e);
-      setError(e.message || 'An error occurred during analysis');
+      setError(e.message || 'Critical failure during neural probe.');
       setStatus(AppStatus.ERROR);
     }
   };
@@ -159,79 +167,161 @@ function App() {
 
   const renderLoadingScreen = () => {
     const stages = [
-      { name: 'Satellite Uplink', icon: Database, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-      { name: 'Neural Processing', icon: Cpu, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-      { name: 'Dossier Assembly', icon: Binary, color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
+      { 
+        name: 'Data Extraction', 
+        icon: Database, 
+        color: 'text-blue-500', 
+        log: 'Scanning GitHub public nodes. Mapping repo trees and commit density...',
+        accent: 'bg-blue-500/10'
+      },
+      { 
+        name: isCompareMode ? 'Comparison Simulation' : 'AI Neural Audit', 
+        icon: isCompareMode ? Swords : Cpu, 
+        color: isCompareMode ? 'text-red-500' : 'text-purple-500', 
+        log: isCompareMode ? 'Running battle simulation. Weighing technical superiority and stack alignment...' : 'Analyzing code syntax patterns. Gemini-3 probing for seniority indicators...',
+        accent: isCompareMode ? 'bg-red-500/10' : 'bg-purple-500/10'
+      },
+      { 
+        name: 'Final Synthesis', 
+        icon: ShieldCheck, 
+        color: 'text-emerald-500', 
+        log: 'Generating Dossier report blocks. Compiling executive recommendations...',
+        accent: 'bg-emerald-500/10'
+      }
     ];
 
-    if (isCompareMode && loadingStage === 1) {
-      stages[1] = { name: 'Battle Simulation', icon: Swords, color: 'text-red-500', bg: 'bg-red-500/10' };
-    }
-
     const current = stages[loadingStage] || stages[0];
+    const progressPercent = ((loadingStage + 1) / stages.length) * 100;
 
     return (
-      <div className="flex flex-col items-center justify-center h-[70vh] w-full animate-in fade-in duration-500">
-        <div className="relative mb-12">
-          {/* Animated Background Rings */}
-          <div className="absolute inset-0 rounded-full border-2 border-slate-800 animate-pulse-ring"></div>
-          <div className="absolute inset-0 rounded-full border border-slate-700/50 animate-spin" style={{ animationDuration: '8s' }}></div>
-          {/* Fix: direction property changed to animationDirection for CSS animations */}
-          <div className="absolute inset-0 rounded-full border border-blue-500/20 animate-spin" style={{ animationDuration: '4s', animationDirection: 'reverse' }}></div>
+      <div className="flex flex-col items-center justify-center min-h-[70vh] w-full max-w-4xl mx-auto px-6">
+        {/* Tactical Visualizer */}
+        <div className="relative mb-20 group">
+          <div className="absolute inset-0 rounded-full border border-slate-800 animate-pulse-ring scale-150 opacity-20"></div>
+          <div className="absolute inset-0 rounded-full border-2 border-slate-700 animate-spin opacity-30" style={{ animationDuration: '12s' }}></div>
           
-          <div className={`relative z-10 p-10 rounded-full bg-slate-900 border border-slate-800 shadow-2xl flex items-center justify-center overflow-hidden`}>
-            {/* Scanning Laser Effect */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-500/20 to-transparent h-1/2 w-full animate-scan z-0"></div>
+          <div className="relative z-10 w-64 h-64 rounded-full bg-slate-900 border-2 border-slate-800 shadow-[0_0_80px_rgba(37,99,235,0.1)] flex items-center justify-center overflow-hidden">
+            {/* Background Digital Rain Effect (Subtle) */}
+            <div className="absolute inset-0 opacity-10 pointer-events-none">
+              <div className="absolute inset-0 bg-grid-slate-700/[0.1] [mask-image:radial-gradient(white,transparent)]"></div>
+            </div>
             
-            <current.icon className={`${current.color} transition-all duration-700 relative z-10`} size={64} />
+            {/* Scanning Bar Animation */}
+            <div className={`absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-transparent ${loadingStage === 1 ? 'via-red-500/10' : 'via-blue-500/20'} to-transparent animate-scan z-0`}></div>
+            
+            <div className="flex flex-col items-center gap-6 relative z-10">
+              <div className={`transition-all duration-700 transform ${loadingStage === 1 ? 'scale-110' : 'scale-100'}`}>
+                 <current.icon 
+                   className={`${current.color} ${loadingStage === 1 ? (isCompareMode ? 'animate-bounce' : 'animate-pulse') : loadingStage === 2 ? 'animate-spin' : 'animate-pulse'}`} 
+                   size={80} 
+                   strokeWidth={1.5}
+                 />
+              </div>
+              
+              <div className="flex gap-2">
+                {[0, 1, 2].map(i => (
+                  <div key={i} className={`w-2 h-2 rounded-full transition-all duration-500 ${i === loadingStage ? `${current.color} scale-125 shadow-lg shadow-current` : 'bg-slate-800'}`}></div>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          {/* Orbital Data Shards */}
+          <div className="absolute top-0 left-0 w-full h-full animate-spin-slow pointer-events-none">
+             <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-blue-500/20 rounded-lg backdrop-blur-md border border-blue-500/30 flex items-center justify-center">
+               <Globe size={14} className="text-blue-400" />
+             </div>
           </div>
         </div>
 
-        <div className="text-center space-y-6 max-w-xl">
-          <div>
-            <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter mb-2 animate-pulse">
+        {/* Textual Feedback */}
+        <div className="text-center w-full space-y-10">
+          <div className="space-y-3">
+            <h2 className="text-5xl font-black text-white italic uppercase tracking-tighter animate-glitch" data-text={loadingMessage}>
               {loadingMessage}
             </h2>
-            <p className="text-slate-500 text-xs font-black uppercase tracking-[0.4em]">
-              DevLens Intelligence Protocol v3.1
+            <p className="text-slate-500 text-xs font-black uppercase tracking-[0.6em] h-5 opacity-80">
+              {loadingSubMessage}
             </p>
           </div>
 
-          {/* Progress Indicator */}
-          <div className="flex items-center justify-center gap-4 py-6">
+          {/* Progress Bar Container */}
+          <div className="relative max-w-2xl mx-auto w-full">
+            <div className="flex justify-between items-end mb-4">
+              <div className="flex items-center gap-3">
+                <Activity size={14} className="text-blue-500 animate-pulse" />
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Neural Link Latency: 24ms</span>
+              </div>
+              <span className="text-xs font-black text-blue-400 uppercase tracking-widest">{Math.round(progressPercent)}% SYNCED</span>
+            </div>
+            
+            <div className="h-3 w-full bg-slate-800/50 rounded-full overflow-hidden p-0.5 border border-slate-800/50 shadow-inner">
+               <div 
+                 className={`h-full bg-gradient-to-r from-blue-700 via-blue-400 to-blue-200 rounded-full transition-all duration-1000 ease-in-out relative`}
+                 style={{ width: `${progressPercent}%` }}
+               >
+                 <div className="absolute inset-0 bg-white/10 animate-data-flow"></div>
+                 <div className="absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 bg-blue-400 blur-2xl opacity-60"></div>
+               </div>
+            </div>
+          </div>
+
+          {/* Operational Log Console */}
+          <div className="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-8 text-left backdrop-blur-xl relative overflow-hidden group max-w-3xl mx-auto">
+            <div className={`absolute top-0 left-0 w-1.5 h-full ${loadingStage === 1 && isCompareMode ? 'bg-red-500' : 'bg-blue-600'} transition-all`}></div>
+            <div className="flex gap-6 items-start">
+              <div className={`p-4 rounded-2xl ${current.accent} ${current.color} shrink-0 shadow-lg`}>
+                <Terminal size={24} />
+              </div>
+              <div className="space-y-3 flex-1">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Operational Terminal v4.0.2</p>
+                   <div className="flex items-center gap-1.5">
+                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                     <span className="text-[9px] font-mono text-slate-600 uppercase">Status: Nominal</span>
+                   </div>
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed font-medium italic">
+                  {current.log}
+                </p>
+                <div className="flex gap-6 pt-2">
+                  <div className="flex items-center gap-2">
+                    <Code size={12} className="text-slate-600" />
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">API: GitHub-v3</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Layers size={12} className="text-slate-600" />
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Model: Gemini-3-Pro</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Granular Stepper */}
+          <div className="flex items-center justify-between px-6 max-w-2xl mx-auto pt-4">
             {stages.map((s, i) => (
               <React.Fragment key={i}>
-                <div className="flex flex-col items-center gap-2">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 transition-all duration-500 ${
-                    i < loadingStage ? 'bg-emerald-500/20 border-emerald-500 text-emerald-500' :
-                    i === loadingStage ? `bg-blue-600/20 border-blue-500 ${current.color}` :
+                <div className="flex flex-col items-center gap-4 group cursor-default">
+                  <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center border-2 transition-all duration-1000 ${
+                    i < loadingStage ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500 shadow-[0_0_25px_rgba(16,185,129,0.15)]' :
+                    i === loadingStage ? `bg-blue-600/10 border-blue-500 ${current.color} shadow-[0_0_40px_rgba(37,99,235,0.25)] scale-110` :
                     'bg-slate-900 border-slate-800 text-slate-700'
                   }`}>
-                    {i < loadingStage ? <ShieldCheck size={18} /> : <s.icon size={18} />}
+                    {i < loadingStage ? <ShieldCheck size={32} /> : <s.icon size={28} />}
                   </div>
-                  <span className={`text-[9px] font-black uppercase tracking-widest ${i <= loadingStage ? 'text-slate-300' : 'text-slate-700'}`}>
+                  <span className={`text-[11px] font-black uppercase tracking-widest transition-colors duration-700 ${i <= loadingStage ? 'text-slate-300' : 'text-slate-700'}`}>
                     {s.name}
                   </span>
                 </div>
                 {i < stages.length - 1 && (
-                  <div className="w-12 h-0.5 bg-slate-800 relative overflow-hidden">
-                    {i === loadingStage && (
-                      <div className="absolute inset-0 bg-blue-500 animate-data-flow"></div>
-                    )}
-                    {i < loadingStage && (
-                      <div className="absolute inset-0 bg-emerald-500"></div>
-                    )}
+                  <div className="flex-1 h-0.5 bg-slate-800 relative mx-4 rounded-full overflow-hidden">
+                    {i < loadingStage && <div className="absolute inset-0 bg-emerald-500"></div>}
+                    {i === loadingStage && <div className="absolute inset-0 bg-blue-500 animate-data-flow"></div>}
                   </div>
                 )}
               </React.Fragment>
             ))}
-          </div>
-
-          <div className="bg-slate-900/50 border border-slate-800/50 rounded-2xl p-4 flex items-center gap-4 text-left">
-            <Activity className="text-blue-500 shrink-0" size={16} />
-            <p className="text-[11px] text-slate-400 leading-tight italic">
-              Probing GitHub satellite data. Analyzing contribution frequency, code complexity, and tech-stack consistency across private and public neural nodes...
-            </p>
           </div>
         </div>
       </div>
@@ -367,7 +457,7 @@ function App() {
 
         {status === AppStatus.ERROR && (
           <div className="flex flex-col items-center justify-center h-[60vh] text-center animate-in zoom-in duration-300">
-            <AlertCircle className="text-red-500 mb-6" size={64} />
+            <Fingerprint className="text-red-500 mb-6" size={64} />
             <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tight">System Malfunction</h2>
             <p className="text-slate-400 max-w-md text-sm mb-8 italic">{error}</p>
             <button onClick={handleAnalyze} className="bg-slate-800 border border-slate-700 px-10 py-4 rounded-2xl text-white font-black uppercase tracking-widest text-xs hover:bg-slate-700 transition-all">Retry Probe</button>
