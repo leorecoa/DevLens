@@ -71,7 +71,6 @@ export interface PipelineFolder {
   name: string;
   color: string;
   candidates: SavedCandidate[];
-  user_id?: string;
 }
 
 export interface UserSubscription {

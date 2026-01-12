@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIAnalysis, ComparisonAnalysis } from "../types";
 
@@ -50,43 +49,28 @@ const COMPARISON_SCHEMA = {
   required: ["winner", "rationale", "suitabilityScore1", "suitabilityScore2", "comparisonPoints"]
 };
 
-// Use gemini-1.5-flash for fast technical auditing and extraction tasks
 export async function analyzeProfile(username: string): Promise<AIAnalysis> {
-  const apiKey = (import.meta as any).env.VITE_GOOGLE_API_KEY;
-  if (!apiKey) {
-    throw new Error("Chave da API (VITE_GOOGLE_API_KEY) não encontrada. Verifique o arquivo .env e reinicie o servidor.");
-  }
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
-    model: 'gemini-1.5-flash',
-    contents: `Analyze the GitHub profile of user "${username}". Assume you have accessed their repositories and contribution history. Provide a deep technical audit of their coding style, consistency, stack specialization, and seniority level.`,
+    model: 'gemini-3-pro-preview',
+    contents: `Analyze the GitHub profile of user "${username}". Provide a deep technical audit of their coding style, consistency, stack specialization, and seniority level based on public repo evidence.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: ANALYSIS_SCHEMA
     }
   });
 
-  try {
-    return JSON.parse(response.text || '{}');
-  } catch (error) {
-    console.error("Erro ao processar resposta da IA (Análise):", error);
-    throw new Error("Falha ao interpretar a resposta da IA.");
-  }
+  return JSON.parse(response.text || '{}');
 }
 
-// Use gemini-1.5-flash for comparative reasoning tasks with lower latency
 export async function compareProfiles(user1: string, user2: string, jd?: string): Promise<ComparisonAnalysis> {
-  const apiKey = (import.meta as any).env.VITE_GOOGLE_API_KEY;
-  if (!apiKey) {
-    throw new Error("Chave da API (VITE_GOOGLE_API_KEY) não encontrada. Verifique o arquivo .env e reinicie o servidor.");
-  }
-  const ai = new GoogleGenAI({ apiKey });
-  const prompt = jd
-    ? `Compare GitHub users "${user1}" and "${user2}" specifically for the following job description: "${jd}". Determine who is the better fit based on their public work and skills.`
-    : `Compare GitHub users "${user1}" and "${user2}". Who is the more senior/versatile engineer? Analyze their strengths relative to each other.`;
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const prompt = jd 
+    ? `Compare GitHub users "${user1}" and "${user2}" specifically for the following job description: "${jd}". Determine who is the better fit.`
+    : `Compare GitHub users "${user1}" and "${user2}". Who is the more senior/versatile engineer?`;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-3-pro-preview',
     contents: prompt,
     config: {
       responseMimeType: "application/json",
@@ -94,23 +78,13 @@ export async function compareProfiles(user1: string, user2: string, jd?: string)
     }
   });
 
-  try {
-    return JSON.parse(response.text || '{}');
-  } catch (error) {
-    console.error("Erro ao processar resposta da IA (Comparação):", error);
-    throw new Error("Falha ao interpretar a comparação da IA.");
-  }
+  return JSON.parse(response.text || '{}');
 }
 
-// Use gemini-1.5-flash for high-frequency Q&A tasks
 export async function chatAboutProfile(username: string, question: string, context: string): Promise<string> {
-  const apiKey = (import.meta as any).env.VITE_GOOGLE_API_KEY;
-  if (!apiKey) {
-    return "Erro: Chave de API não configurada. Verifique o .env.";
-  }
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-3-flash-preview',
     contents: `The user is asking about GitHub profile @${username}. 
     Context: ${context}
     Question: ${question}
