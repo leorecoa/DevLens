@@ -155,7 +155,9 @@ function App() {
     };
 
     if (supabase) {
-      await supabase.from('folders').insert([newFolder]);
+      const { data: { user } } = await supabase.auth.getUser();
+      const folderToInsert = user ? { ...newFolder, user_id: user.id } : newFolder;
+      await supabase.from('folders').insert([folderToInsert]);
     }
     setFolders([...folders, newFolder]);
   };
