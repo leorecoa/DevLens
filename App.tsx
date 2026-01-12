@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Github, Terminal, AlertCircle, Loader2, Sparkles, Swords, Users, Crown, CreditCard, Shield, ClipboardList, X, Target, Folders, Cpu, Database, Network, Binary, ShieldCheck, Activity, Wifi, Box, Fingerprint, Zap, Radar, Microscope, HardDrive, Globe, Code, Layers } from 'lucide-react';
+import { Search, Github, Terminal, AlertCircle, Loader2, Sparkles, Swords, Users, Crown, CreditCard, Shield, ClipboardList, X, Target, Folders, Cpu, Database, Network, Binary, ShieldCheck, Activity, Wifi, Box, Fingerprint, Zap, Radar, Microscope, HardDrive, Globe, Code, Layers, Share2, Star, GitFork, ChevronRight, FileDown, Twitter, Linkedin, MessageSquare, Send, FolderPlus, Trash2, UserMinus, User, Calendar, ExternalLink } from 'lucide-react';
 import { analyzeProfile, compareProfiles } from './services/geminiService';
 import { AppStatus, AIAnalysis, GitHubProfile, Repository, ComparisonAnalysis, UserSubscription, PipelineFolder, SavedCandidate } from './types';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
@@ -80,7 +80,7 @@ function App() {
       if (isCompareMode) {
         setLoadingStage(0);
         setLoadingMessage('Establishing Uplink');
-        setLoadingSubMessage('Requesting secure GitHub API handshake and mapping dual identities...');
+        setLoadingSubMessage('Requesting dual identity mapping via GitHub nodes...');
         
         const [d1, d2] = await Promise.all([
           fetchGitHubData(username1),
@@ -94,29 +94,29 @@ function App() {
         
         setLoadingStage(1);
         setLoadingMessage('Combat Simulation');
-        setLoadingSubMessage('Synthesizing technical DNA. Running side-by-side performance audits...');
+        setLoadingSubMessage('Neural networks calculating strategic superiority...');
         const compResult = await compareProfiles(username1, username2, jdInput);
         setComparison(compResult);
       } else {
         setLoadingStage(0);
-        setLoadingMessage('Fetching Profile Intel');
-        setLoadingSubMessage('Accessing repository metadata and contribution history shards...');
+        setLoadingMessage('Fetching Intel');
+        setLoadingSubMessage('Accessing repository trees and contribution history shards...');
         const d1 = await fetchGitHubData(username1);
         setProfile1(d1.p);
         setRepos1(d1.r);
         
         setLoadingStage(1);
-        setLoadingMessage('Neural AI Analysis');
-        setLoadingSubMessage('Gemini 3 probing skill matrix, coding consistency, and technical seniority...');
+        setLoadingMessage('Neural Decoding');
+        setLoadingSubMessage('Gemini 3 probing skill matrix and technical seniority...');
         const aiResult = await analyzeProfile(username1);
         setAnalysis(aiResult);
       }
       
       setLoadingStage(2);
       setLoadingMessage('Finalizing Dossier');
-      setLoadingSubMessage('Packaging encrypted intelligence for executive recruitment review...');
+      setLoadingSubMessage('Packaging encrypted intelligence for recruitment review...');
       
-      await new Promise(resolve => setTimeout(resolve, 1200));
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       setSub(prev => ({
         ...prev,
@@ -166,166 +166,7 @@ function App() {
   };
 
   const renderLoadingScreen = () => {
-    const stages = [
-      { 
-        name: 'Data Extraction', 
-        icon: Database, 
-        color: 'text-blue-500', 
-        log: 'Scanning GitHub public nodes. Mapping repo trees and commit density...',
-        accent: 'bg-blue-500/10'
-      },
-      { 
-        name: isCompareMode ? 'Comparison Simulation' : 'AI Neural Audit', 
-        icon: isCompareMode ? Swords : Cpu, 
-        color: isCompareMode ? 'text-red-500' : 'text-purple-500', 
-        log: isCompareMode ? 'Running battle simulation. Weighing technical superiority and stack alignment...' : 'Analyzing code syntax patterns. Gemini-3 probing for seniority indicators...',
-        accent: isCompareMode ? 'bg-red-500/10' : 'bg-purple-500/10'
-      },
-      { 
-        name: 'Final Synthesis', 
-        icon: ShieldCheck, 
-        color: 'text-emerald-500', 
-        log: 'Generating Dossier report blocks. Compiling executive recommendations...',
-        accent: 'bg-emerald-500/10'
-      }
-    ];
-
-    const current = stages[loadingStage] || stages[0];
-    const progressPercent = ((loadingStage + 1) / stages.length) * 100;
-
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] w-full max-w-4xl mx-auto px-6">
-        {/* Tactical Visualizer */}
-        <div className="relative mb-20 group">
-          <div className="absolute inset-0 rounded-full border border-slate-800 animate-pulse-ring scale-150 opacity-20"></div>
-          <div className="absolute inset-0 rounded-full border-2 border-slate-700 animate-spin opacity-30" style={{ animationDuration: '12s' }}></div>
-          
-          <div className="relative z-10 w-64 h-64 rounded-full bg-slate-900 border-2 border-slate-800 shadow-[0_0_80px_rgba(37,99,235,0.1)] flex items-center justify-center overflow-hidden">
-            {/* Background Digital Rain Effect (Subtle) */}
-            <div className="absolute inset-0 opacity-10 pointer-events-none">
-              <div className="absolute inset-0 bg-grid-slate-700/[0.1] [mask-image:radial-gradient(white,transparent)]"></div>
-            </div>
-            
-            {/* Scanning Bar Animation */}
-            <div className={`absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-transparent ${loadingStage === 1 ? 'via-red-500/10' : 'via-blue-500/20'} to-transparent animate-scan z-0`}></div>
-            
-            <div className="flex flex-col items-center gap-6 relative z-10">
-              <div className={`transition-all duration-700 transform ${loadingStage === 1 ? 'scale-110' : 'scale-100'}`}>
-                 <current.icon 
-                   className={`${current.color} ${loadingStage === 1 ? (isCompareMode ? 'animate-bounce' : 'animate-pulse') : loadingStage === 2 ? 'animate-spin' : 'animate-pulse'}`} 
-                   size={80} 
-                   strokeWidth={1.5}
-                 />
-              </div>
-              
-              <div className="flex gap-2">
-                {[0, 1, 2].map(i => (
-                  <div key={i} className={`w-2 h-2 rounded-full transition-all duration-500 ${i === loadingStage ? `${current.color} scale-125 shadow-lg shadow-current` : 'bg-slate-800'}`}></div>
-                ))}
-              </div>
-            </div>
-          </div>
-          
-          {/* Orbital Data Shards */}
-          <div className="absolute top-0 left-0 w-full h-full animate-spin-slow pointer-events-none">
-             <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-blue-500/20 rounded-lg backdrop-blur-md border border-blue-500/30 flex items-center justify-center">
-               <Globe size={14} className="text-blue-400" />
-             </div>
-          </div>
-        </div>
-
-        {/* Textual Feedback */}
-        <div className="text-center w-full space-y-10">
-          <div className="space-y-3">
-            <h2 className="text-5xl font-black text-white italic uppercase tracking-tighter animate-glitch" data-text={loadingMessage}>
-              {loadingMessage}
-            </h2>
-            <p className="text-slate-500 text-xs font-black uppercase tracking-[0.6em] h-5 opacity-80">
-              {loadingSubMessage}
-            </p>
-          </div>
-
-          {/* Progress Bar Container */}
-          <div className="relative max-w-2xl mx-auto w-full">
-            <div className="flex justify-between items-end mb-4">
-              <div className="flex items-center gap-3">
-                <Activity size={14} className="text-blue-500 animate-pulse" />
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Neural Link Latency: 24ms</span>
-              </div>
-              <span className="text-xs font-black text-blue-400 uppercase tracking-widest">{Math.round(progressPercent)}% SYNCED</span>
-            </div>
-            
-            <div className="h-3 w-full bg-slate-800/50 rounded-full overflow-hidden p-0.5 border border-slate-800/50 shadow-inner">
-               <div 
-                 className={`h-full bg-gradient-to-r from-blue-700 via-blue-400 to-blue-200 rounded-full transition-all duration-1000 ease-in-out relative`}
-                 style={{ width: `${progressPercent}%` }}
-               >
-                 <div className="absolute inset-0 bg-white/10 animate-data-flow"></div>
-                 <div className="absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 bg-blue-400 blur-2xl opacity-60"></div>
-               </div>
-            </div>
-          </div>
-
-          {/* Operational Log Console */}
-          <div className="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-8 text-left backdrop-blur-xl relative overflow-hidden group max-w-3xl mx-auto">
-            <div className={`absolute top-0 left-0 w-1.5 h-full ${loadingStage === 1 && isCompareMode ? 'bg-red-500' : 'bg-blue-600'} transition-all`}></div>
-            <div className="flex gap-6 items-start">
-              <div className={`p-4 rounded-2xl ${current.accent} ${current.color} shrink-0 shadow-lg`}>
-                <Terminal size={24} />
-              </div>
-              <div className="space-y-3 flex-1">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Operational Terminal v4.0.2</p>
-                   <div className="flex items-center gap-1.5">
-                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                     <span className="text-[9px] font-mono text-slate-600 uppercase">Status: Nominal</span>
-                   </div>
-                </div>
-                <p className="text-sm text-slate-300 leading-relaxed font-medium italic">
-                  {current.log}
-                </p>
-                <div className="flex gap-6 pt-2">
-                  <div className="flex items-center gap-2">
-                    <Code size={12} className="text-slate-600" />
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">API: GitHub-v3</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Layers size={12} className="text-slate-600" />
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Model: Gemini-3-Pro</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Granular Stepper */}
-          <div className="flex items-center justify-between px-6 max-w-2xl mx-auto pt-4">
-            {stages.map((s, i) => (
-              <React.Fragment key={i}>
-                <div className="flex flex-col items-center gap-4 group cursor-default">
-                  <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center border-2 transition-all duration-1000 ${
-                    i < loadingStage ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500 shadow-[0_0_25px_rgba(16,185,129,0.15)]' :
-                    i === loadingStage ? `bg-blue-600/10 border-blue-500 ${current.color} shadow-[0_0_40px_rgba(37,99,235,0.25)] scale-110` :
-                    'bg-slate-900 border-slate-800 text-slate-700'
-                  }`}>
-                    {i < loadingStage ? <ShieldCheck size={32} /> : <s.icon size={28} />}
-                  </div>
-                  <span className={`text-[11px] font-black uppercase tracking-widest transition-colors duration-700 ${i <= loadingStage ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {s.name}
-                  </span>
-                </div>
-                {i < stages.length - 1 && (
-                  <div className="flex-1 h-0.5 bg-slate-800 relative mx-4 rounded-full overflow-hidden">
-                    {i < loadingStage && <div className="absolute inset-0 bg-emerald-500"></div>}
-                    {i === loadingStage && <div className="absolute inset-0 bg-blue-500 animate-data-flow"></div>}
-                  </div>
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+    return <GranularLoadingScreen stage={loadingStage} message={loadingMessage} subMessage={loadingSubMessage} isBattle={isCompareMode} />;
   };
 
   return (
@@ -452,7 +293,7 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full">
+      <main className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full relative">
         {status === AppStatus.LOADING && renderLoadingScreen()}
 
         {status === AppStatus.ERROR && (
@@ -531,30 +372,72 @@ function App() {
         )}
 
         {status === AppStatus.IDLE && (
-          <div className="flex flex-col items-center justify-center min-h-[70vh] text-center max-w-3xl mx-auto space-y-12">
-            <div className="bg-blue-600/10 p-12 rounded-[4rem] relative group border border-blue-500/10">
-              <Github className="text-blue-500 group-hover:scale-110 group-hover:rotate-6 transition-all duration-700" size={100} />
-              <div className="absolute -bottom-6 -right-6 bg-yellow-500 p-5 rounded-[2rem] shadow-2xl shadow-yellow-900/40 border-4 border-[#0b0f1a]">
-                 <Crown className="text-black" size={40} fill="currentColor" />
+          <div className="relative min-h-[80vh] flex flex-col items-center justify-center text-center overflow-hidden">
+            {/* Capa Background Visuals */}
+            <div className="absolute inset-0 z-0 pointer-events-none">
+              <div className="absolute inset-0 bg-grid-slate-700/[0.05] [mask-image:radial-gradient(white,transparent)]"></div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/5 rounded-full blur-[120px]"></div>
+            </div>
+
+            <div className="relative z-10 flex flex-col items-center space-y-12 max-w-5xl px-6">
+              <div className="relative group">
+                <div className="bg-blue-600/10 p-12 rounded-[5rem] border border-blue-500/10 shadow-[0_0_50px_rgba(37,99,235,0.1)] relative">
+                  <Github className="text-blue-500 group-hover:scale-110 transition-all duration-1000" size={120} strokeWidth={1} />
+                  <div className="absolute -bottom-6 -right-6 bg-yellow-500 p-6 rounded-[2.5rem] shadow-2xl border-8 border-[#0b0f1a]">
+                    <Crown className="text-black" size={48} fill="currentColor" />
+                  </div>
+                </div>
+                {/* Orbital Ring */}
+                <div className="absolute inset-0 -m-8 border-2 border-slate-800 rounded-[6rem] animate-spin-slow opacity-20 border-dashed"></div>
               </div>
-            </div>
-            <div className="space-y-6">
-              <h2 className="text-7xl font-black text-white italic uppercase tracking-tighter leading-[0.85]">
-                Neural <br/> <span className="text-blue-500">Recruitment</span> <br/> Intelligence
-              </h2>
-              <p className="text-slate-400 text-xl leading-relaxed italic max-w-2xl mx-auto font-medium">
-                Deep-probe GitHub profiles with Gemini 3. Audit skills, predict seniority, and compare technical DNA across repositories.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-6">
-               <button onClick={handleAnalyze} className="bg-blue-600 hover:bg-blue-500 px-12 py-6 rounded-[2rem] font-black text-white shadow-2xl shadow-blue-500/30 uppercase tracking-widest text-sm transition-all flex items-center justify-center gap-4">
-                 <Sparkles size={24} />
-                 Probe Sector
-               </button>
-               <button onClick={() => setIsCompareMode(true)} className="bg-slate-800 hover:bg-slate-700 px-12 py-6 rounded-[2rem] font-black text-white border border-slate-700 uppercase tracking-widest text-sm transition-all flex items-center justify-center gap-4">
-                 <Swords size={24} />
-                 Tactical Battle
-               </button>
+
+              <div className="space-y-8">
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.8em]">Neural Recruitment Protocol</p>
+                  <h2 className="text-8xl font-black text-white italic uppercase tracking-tighter leading-[0.8]">
+                    Neural <br/> <span className="text-blue-500">Recruitment</span> <br/> Intelligence
+                  </h2>
+                </div>
+                <p className="text-slate-400 text-2xl leading-relaxed italic max-w-3xl mx-auto font-medium">
+                  Deep-probe GitHub profiles with Gemini 3. Audit skills, predict seniority, and compare technical DNA across public repository trees.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-8 pt-4">
+                <button 
+                  onClick={handleAnalyze} 
+                  className="group relative bg-blue-600 hover:bg-blue-500 px-16 py-8 rounded-[2.5rem] font-black text-white shadow-[0_0_40px_rgba(37,99,235,0.4)] uppercase tracking-[0.2em] text-sm transition-all flex items-center justify-center gap-6 overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                  <Sparkles size={32} className="group-hover:rotate-12 transition-transform" />
+                  Probe Sector
+                </button>
+                <button 
+                  onClick={() => setIsCompareMode(true)} 
+                  className="bg-slate-900 hover:bg-slate-800 border-2 border-slate-800 px-16 py-8 rounded-[2.5rem] font-black text-white uppercase tracking-[0.2em] text-sm transition-all flex items-center justify-center gap-6 group"
+                >
+                  <Swords size={32} className="text-slate-500 group-hover:text-red-500 transition-colors" />
+                  Tactical Battle
+                </button>
+              </div>
+
+              <div className="pt-20 flex items-center gap-12 text-slate-700">
+                <div className="flex flex-col items-center">
+                  <span className="text-[9px] font-black uppercase tracking-widest mb-2 opacity-50">Powered By</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-600/10 flex items-center justify-center"><Cpu size={16} className="text-blue-500" /></div>
+                    <span className="text-xs font-bold uppercase tracking-tighter">Gemini 3 Pro</span>
+                  </div>
+                </div>
+                <div className="h-8 w-px bg-slate-800"></div>
+                <div className="flex flex-col items-center">
+                  <span className="text-[9px] font-black uppercase tracking-widest mb-2 opacity-50">Data Uplink</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center"><Network size={16} /></div>
+                    <span className="text-xs font-bold uppercase tracking-tighter">GitHub REST v4</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -571,11 +454,163 @@ function App() {
         />
       )}
 
-      <footer className="py-12 border-t border-slate-800 text-center text-slate-700 text-[10px] font-black uppercase tracking-[0.6em] bg-slate-900/30">
+      <footer className="py-12 border-t border-slate-800 text-center text-slate-700 text-[10px] font-black uppercase tracking-[0.6em] bg-slate-900/30 no-print">
         DevLens // Advanced Neural Sourcing Unit // Gemini 3 Logic Engine Active
       </footer>
     </div>
   );
 }
+
+// Internal Granular Loading Screen Component
+const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage: number, message: string, subMessage: string, isBattle: boolean }) => {
+  const [logMessages, setLogMessages] = useState<string[]>([]);
+  
+  const fetchLogs = ["Mapping API Endpoints...", "Requesting node authorization...", "Extracting contribution history...", "Parsing repository tree nodes...", "Decoding user metadata shards..."];
+  const aiLogs = ["Initializing Gemini 3 Logic Engine...", "Performing AST pattern analysis...", "Measuring commit consistency metrics...", "Synthesizing skill matrices...", "Projecting seniority trajectories..."];
+  const battleLogs = ["Establishing competitive neural link...", "Calculating side-by-side performance...", "Measuring technical DNA parity...", "Running suitability clash algorithms...", "Determining strategic winner..."];
+  const finalizeLogs = ["Packaging encrypted intelligence...", "Generating report dossiers...", "Optimizing visualization buffers...", "Finalizing executive dossiers...", "Ready for deployment."];
+
+  useEffect(() => {
+    let currentLogs = stage === 0 ? fetchLogs : stage === 1 ? (isBattle ? battleLogs : aiLogs) : finalizeLogs;
+    let idx = 0;
+    const interval = setInterval(() => {
+      setLogMessages(prev => [...prev.slice(-4), currentLogs[idx]]);
+      idx = (idx + 1) % currentLogs.length;
+    }, 800);
+    return () => clearInterval(interval);
+  }, [stage, isBattle]);
+
+  const stages = [
+    { name: 'Data Extraction', icon: Database, color: 'text-blue-500', accent: 'bg-blue-500/10' },
+    { name: isBattle ? 'Battle Simulation' : 'Neural Audit', icon: isBattle ? Swords : Cpu, color: isBattle ? 'text-red-500' : 'text-purple-500', accent: isBattle ? 'bg-red-500/10' : 'bg-purple-500/10' },
+    { name: 'Synthesis', icon: ShieldCheck, color: 'text-emerald-500', accent: 'bg-emerald-500/10' }
+  ];
+
+  const currentStage = stages[stage] || stages[0];
+  const progressPercent = ((stage + 1) / 3) * 100;
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[75vh] w-full max-w-4xl mx-auto px-6 space-y-12 animate-in fade-in duration-500">
+      {/* Central Tactical Visualizer */}
+      <div className="relative group">
+        <div className={`absolute inset-0 rounded-full border border-slate-800 animate-pulse-ring scale-150 opacity-10`}></div>
+        <div className="absolute inset-0 rounded-full border-2 border-slate-700 animate-spin opacity-30" style={{ animationDuration: '15s' }}></div>
+        
+        <div className="relative z-10 w-72 h-72 rounded-full bg-[#0d1424] border-4 border-slate-800 shadow-[0_0_100px_rgba(37,99,235,0.1)] flex items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 opacity-10 pointer-events-none">
+            <div className="absolute inset-0 bg-grid-slate-700/[0.1] [mask-image:radial-gradient(white,transparent)]"></div>
+          </div>
+          
+          <div className="flex flex-col items-center gap-8 relative z-10">
+            <div className={`transition-all duration-1000 transform ${stage === 1 ? 'scale-110 rotate-12' : 'scale-100'}`}>
+               <currentStage.icon 
+                 className={`${currentStage.color} ${stage === 1 ? 'animate-bounce' : stage === 2 ? 'animate-pulse' : 'animate-pulse'}`} 
+                 size={100} 
+                 strokeWidth={1.5}
+               />
+            </div>
+            <div className="flex gap-3">
+              {[0, 1, 2].map(i => (
+                <div key={i} className={`w-3 h-3 rounded-full transition-all duration-700 ${i === stage ? `${currentStage.color} scale-125 shadow-[0_0_15px_currentColor]` : 'bg-slate-800'}`}></div>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        {/* Decorative Orbital Elements */}
+        <div className="absolute -top-10 -right-10 w-20 h-20 border border-slate-800 rounded-2xl flex items-center justify-center bg-slate-900/40 backdrop-blur-xl">
+          <Binary size={32} className="text-slate-600" />
+        </div>
+        <div className="absolute -bottom-10 -left-10 w-20 h-20 border border-slate-800 rounded-2xl flex items-center justify-center bg-slate-900/40 backdrop-blur-xl">
+          <Layers size={32} className="text-slate-600" />
+        </div>
+      </div>
+
+      {/* Primary Message Area */}
+      <div className="text-center w-full space-y-8">
+        <div className="space-y-4">
+          <h2 className="text-6xl font-black text-white italic uppercase tracking-tighter">
+            {message}
+          </h2>
+          <p className="text-slate-500 text-sm font-black uppercase tracking-[0.5em] h-6">
+            {subMessage}
+          </p>
+        </div>
+
+        {/* Dynamic Progress Bar */}
+        <div className="max-w-2xl mx-auto w-full space-y-4">
+          <div className="flex justify-between items-end">
+            <div className="flex items-center gap-3">
+              <Activity size={18} className="text-blue-500" />
+              <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Protocol Active</span>
+            </div>
+            <span className="text-sm font-black text-blue-400 uppercase tracking-widest">{Math.round(progressPercent)}% Sync Complete</span>
+          </div>
+          
+          <div className="h-4 w-full bg-slate-900 border border-slate-800 rounded-full overflow-hidden p-1 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+             <div 
+               className={`h-full bg-gradient-to-r ${stage === 1 && isBattle ? 'from-red-700 via-red-500 to-yellow-500' : 'from-blue-700 via-blue-400 to-emerald-400'} rounded-full transition-all duration-1000 ease-in-out relative`}
+               style={{ width: `${progressPercent}%` }}
+             >
+               <div className="absolute inset-0 bg-white/20 animate-data-flow"></div>
+             </div>
+          </div>
+        </div>
+
+        {/* Real-time Operational Console */}
+        <div className="bg-[#080c14] border border-slate-800 rounded-[2rem] p-8 text-left backdrop-blur-3xl relative overflow-hidden group max-w-3xl mx-auto shadow-2xl">
+          <div className={`absolute top-0 left-0 w-2 h-full ${stage === 1 && isBattle ? 'bg-red-500' : 'bg-blue-600'}`}></div>
+          <div className="flex gap-8 items-start">
+            <div className={`p-5 rounded-2xl ${currentStage.accent} ${currentStage.color} shrink-0`}>
+              <Terminal size={32} />
+            </div>
+            <div className="space-y-4 flex-1">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                 <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Neural Terminal v4.5.1</p>
+                 <div className="flex items-center gap-2">
+                   <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                   <span className="text-[10px] font-mono text-slate-600 uppercase">Latency: 12ms</span>
+                 </div>
+              </div>
+              <div className="space-y-2 h-32 overflow-hidden flex flex-col justify-end">
+                {logMessages.map((log, i) => (
+                  <p key={i} className={`text-xs font-mono transition-all duration-500 ${i === logMessages.length - 1 ? 'text-blue-400 translate-x-1' : 'text-slate-600 opacity-50'}`}>
+                    <span className="text-slate-800 mr-2">{'>'}</span> {log}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tactical Stepper Component */}
+        <div className="flex items-center justify-between px-10 max-w-3xl mx-auto pt-6">
+          {stages.map((s, i) => (
+            <React.Fragment key={i}>
+              <div className="flex flex-col items-center gap-4">
+                <div className={`w-20 h-20 rounded-3xl flex items-center justify-center border-2 transition-all duration-1000 ${
+                  i < stage ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.2)]' :
+                  i === stage ? `bg-blue-600/10 border-blue-500 ${currentStage.color} shadow-[0_0_50px_rgba(37,99,235,0.3)] scale-110` :
+                  'bg-slate-900 border-slate-800 text-slate-700'
+                }`}>
+                  {i < stage ? <ShieldCheck size={40} /> : <s.icon size={36} />}
+                </div>
+                <span className={`text-xs font-black uppercase tracking-widest transition-colors duration-700 ${i <= stage ? 'text-slate-300' : 'text-slate-700'}`}>
+                  {s.name}
+                </span>
+              </div>
+              {i < stages.length - 1 && (
+                <div className="flex-1 h-1 bg-slate-800 relative mx-6 rounded-full overflow-hidden">
+                  {i < stage && <div className="absolute inset-0 bg-emerald-500"></div>}
+                  {i === stage && <div className="absolute inset-0 bg-blue-500 animate-data-flow"></div>}
+                </div>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default App;
