@@ -49,7 +49,6 @@ const COMPARISON_SCHEMA = {
   required: ["winner", "rationale", "suitabilityScore1", "suitabilityScore2", "comparisonPoints"]
 };
 
-// Helper para instanciar a IA com segurança
 const getAIClient = () => {
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
