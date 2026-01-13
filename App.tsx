@@ -233,15 +233,11 @@ function App() {
                 <div className="flex items-center gap-2">
                   <Folders size={14} className="text-blue-500" />
                   <span className="text-xs font-bold text-slate-300">
-<<<<<<< HEAD
                     {isFoldersLoading ? (
                       <Loader2 size={12} className="animate-spin text-slate-500" />
                     ) : (
                       `${folders.reduce((acc, f) => acc + f.candidates.length, 0)} Salvos`
                     )}
-=======
-                    {folders.reduce((acc: number, f: PipelineFolder) => acc + f.candidates.length, 0)} Salvos
->>>>>>> dc9b49b58fa61e940ffc89a0521b1b54b447c718
                   </span>
                 </div>
               </button>
