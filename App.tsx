@@ -118,7 +118,7 @@ function App() {
       
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      setSub(prev => ({
+      setSub((prev: UserSubscription) => ({
         ...prev,
         creditsRemaining: prev.tier === 'PRO' ? prev.creditsRemaining : Math.max(0, prev.creditsRemaining - 1),
         totalAnalyses: prev.totalAnalyses + 1
@@ -143,13 +143,13 @@ function App() {
   };
 
   const handleDeleteFolder = (id: string) => {
-    setFolders(folders.filter(f => f.id !== id));
+    setFolders(folders.filter((f: PipelineFolder) => f.id !== id));
   };
 
   const handleAddToPipeline = (folderId: string, candidate: SavedCandidate) => {
-    setFolders(folders.map(f => {
+    setFolders(folders.map((f: PipelineFolder) => {
       if (f.id === folderId) {
-        if (f.candidates.some(c => c.username === candidate.username)) return f;
+        if (f.candidates.some((c: SavedCandidate) => c.username === candidate.username)) return f;
         return { ...f, candidates: [...f.candidates, candidate] };
       }
       return f;
@@ -157,9 +157,9 @@ function App() {
   };
 
   const handleRemoveCandidate = (folderId: string, username: string) => {
-    setFolders(folders.map(f => {
+    setFolders(folders.map((f: PipelineFolder) => {
       if (f.id === folderId) {
-        return { ...f, candidates: f.candidates.filter(c => c.username !== username) };
+        return { ...f, candidates: f.candidates.filter((c: SavedCandidate) => c.username !== username) };
       }
       return f;
     }));
@@ -194,7 +194,7 @@ function App() {
                 <div className="flex items-center gap-2">
                   <Folders size={14} className="text-blue-500" />
                   <span className="text-xs font-bold text-slate-300">
-                    {folders.reduce((acc, f) => acc + f.candidates.length, 0)} Salvos
+                    {folders.reduce((acc: number, f: PipelineFolder) => acc + f.candidates.length, 0)} Salvos
                   </span>
                 </div>
               </button>
@@ -218,7 +218,7 @@ function App() {
                 <input 
                   type="text"
                   value={username1}
-                  onChange={(e) => setUsername1(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername1(e.target.value)}
                   placeholder="Perfil Principal"
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl py-2.5 pl-9 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -234,7 +234,7 @@ function App() {
                     <input 
                       type="text"
                       value={username2}
-                      onChange={(e) => setUsername2(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername2(e.target.value)}
                       placeholder="Perfil Oponente"
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl py-2.5 pl-9 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
@@ -283,7 +283,7 @@ function App() {
                </div>
                <textarea 
                   value={jdInput}
-                  onChange={(e) => setJdInput(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setJdInput(e.target.value)}
                   placeholder="Cole a descrição da vaga para análise de fit especializado..."
                   className="w-full h-24 bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-yellow-500 custom-scrollbar"
                />
@@ -474,7 +474,7 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
     let currentLogs = stage === 0 ? fetchLogs : stage === 1 ? (isBattle ? battleLogs : aiLogs) : finalizeLogs;
     let idx = 0;
     const interval = setInterval(() => {
-      setLogMessages(prev => [...prev.slice(-4), currentLogs[idx]]);
+      setLogMessages((prev: string[]) => [...prev.slice(-4), currentLogs[idx]]);
       idx = (idx + 1) % currentLogs.length;
     }, 800);
     return () => clearInterval(interval);
