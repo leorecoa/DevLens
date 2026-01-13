@@ -87,11 +87,11 @@ function App() {
     setAnalysis(null);
     
     try {
+      setLoadingStage(0);
+      setLoadingMessage('Fetching GitHub Data');
+      setLoadingSubMessage('Mapeando identidades via nós do GitHub...');
+      
       if (isCompareMode) {
-        setLoadingStage(0);
-        setLoadingMessage('Fetching GitHub Data');
-        setLoadingSubMessage('Mapeando identidades via nós do GitHub...');
-        
         const [d1, d2] = await Promise.all([
           fetchGitHubData(username1),
           fetchGitHubData(username2)
@@ -108,9 +108,6 @@ function App() {
         const compResult = await compareProfiles(username1, username2, jdInput);
         setComparison(compResult);
       } else {
-        setLoadingStage(0);
-        setLoadingMessage('Fetching GitHub Data');
-        setLoadingSubMessage('Acessando árvores de repositórios e histórico...');
         const d1 = await fetchGitHubData(username1);
         setProfile1(d1.p);
         setRepos1(d1.r);
@@ -136,8 +133,8 @@ function App() {
       
       setStatus(AppStatus.SUCCESS);
     } catch (e: any) {
-      console.error(e);
-      setError(e.message || 'Falha crítica durante a sonda neural.');
+      console.error('Análise falhou:', e);
+      setError(e.message || 'Falha crítica na sonda neural. Verifique sua chave API.');
       setStatus(AppStatus.ERROR);
     }
   };
@@ -316,14 +313,14 @@ function App() {
         {status === AppStatus.ERROR && (
           <div className="flex flex-col items-center justify-center h-[60vh] text-center animate-in zoom-in duration-300">
             <Fingerprint className="text-red-500 mb-6" size={64} />
-            <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">Mau funcionamento do sistema</h2>
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">Erro no Sistema</h2>
             <p className="text-slate-600 dark:text-slate-400 max-w-md text-sm mb-8 italic">{error}</p>
             <button onClick={handleAnalyze} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-10 py-4 rounded-2xl text-slate-900 dark:text-white font-black uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm">Tentar Novamente</button>
           </div>
         )}
 
         {status === AppStatus.SUCCESS && (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-in fade-in duration-500">
             {isCompareMode && comparison && profile1 && profile2 ? (
               <ComparisonDashboard 
                 comparison={comparison} 
@@ -336,7 +333,7 @@ function App() {
               analysis && profile1 && (
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
                   <div className="xl:col-span-8 space-y-8">
-                    <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-8 rounded-[2.5rem] relative overflow-hidden group shadow-sm transition-colors">
+                    <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-8 rounded-[2.5rem] relative overflow-hidden group shadow-sm transition-colors duration-300">
                       <div className="absolute top-0 right-0 p-8 no-print">
                          <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${sub.tier === 'PRO' ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'}`}>
                             {sub.tier === 'PRO' ? <Crown size={12} fill="currentColor" /> : <Shield size={12} />}
@@ -390,7 +387,6 @@ function App() {
 
         {status === AppStatus.IDLE && (
           <div className="relative min-h-[80vh] flex flex-col items-center justify-center text-center overflow-hidden">
-            {/* Capa Background Visuals */}
             <div className="absolute inset-0 z-0 pointer-events-none">
               <div className="absolute inset-0 bg-grid-slate-200 dark:bg-grid-slate-700/[0.05] [mask-image:radial-gradient(white,transparent)]"></div>
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/5 dark:bg-blue-600/5 rounded-full blur-[120px]"></div>
@@ -404,7 +400,6 @@ function App() {
                     <Crown className="text-black" size={48} fill="currentColor" />
                   </div>
                 </div>
-                {/* Orbital Ring */}
                 <div className="absolute inset-0 -m-8 border-2 border-slate-200 dark:border-slate-800 rounded-[6rem] animate-spin-slow opacity-20 border-dashed"></div>
               </div>
 
@@ -427,7 +422,7 @@ function App() {
                 >
                   <div className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                   <Sparkles size={32} className="group-hover:rotate-12 transition-transform" />
-                  Sondar Setor
+                  Sondar Perfil
                 </button>
                 <button 
                   onClick={() => setIsCompareMode(true)} 
@@ -471,26 +466,29 @@ function App() {
         />
       )}
 
-      <footer className="py-12 border-t border-slate-200 dark:border-slate-800 text-center text-slate-400 dark:text-slate-700 text-[10px] font-black uppercase tracking-[0.6em] bg-white/30 dark:bg-slate-900/30 no-print transition-colors">
+      <footer className="py-12 border-t border-slate-200 dark:border-slate-800 text-center text-slate-400 dark:text-slate-700 text-[10px] font-black uppercase tracking-[0.6em] bg-white/30 dark:bg-slate-900/30 no-print transition-colors duration-300">
         DevLens // Advanced Neural Sourcing Unit // Gemini 3 Logic Engine Active
       </footer>
     </div>
   );
 }
 
-// Optimized Granular Loading Screen Component with distinct animations for each stage
+// Re-refined Granular Loading Screen Component with correct Stages
 const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage: number, message: string, subMessage: string, isBattle: boolean }) => {
   const [logMessages, setLogMessages] = useState<string[]>([]);
   const [dots, setDots] = useState('');
+  const [randomHex, setRandomHex] = useState('');
 
-  // Enhanced Logs for technical immersive feedback
+  // Immersive Log Messages
   const extractionLogs = [
     "Establishing handshake with GitHub REST v4...",
     "Retrieving primary profile metadata...",
     "Extracting contribution heatmap...",
     "Querying repository forest nodes...",
     "Fetching star-to-fork ratios...",
-    "Mapping technical affiliation trees..."
+    "Mapping technical affiliation trees...",
+    "Scanning public Gists for logic patterns...",
+    "Optimizing data packet retrieval..."
   ];
 
   const processingLogs = isBattle ? [
@@ -499,14 +497,18 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
     "Calculating technical DNA parity...",
     "Running side-by-side AST comparison...",
     "Simulating workload scenarios...",
-    "Synthesizing winner rationale..."
+    "Synthesizing winner rationale...",
+    "Cross-referencing skill matrices...",
+    "Finalizing combat score vectors..."
   ] : [
     "Booting Gemini 3 Logic Engine...",
     "Performing AST pattern recognition...",
     "Auditing commit consistency metrics...",
     "Mapping repository complexity...",
     "Projecting career growth trajectory...",
-    "Finalizing skill matrix vectors..."
+    "Finalizing skill matrix vectors...",
+    "Generating personality trait analysis...",
+    "Validating stack specialization nodes..."
   ];
 
   const finalizationLogs = [
@@ -514,20 +516,23 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
     "Generating executive summary report...",
     "Optimizing visualization buffers...",
     "Curing final dossier fragments...",
-    "System ready for deployment."
+    "Generating printable PDF intelligence...",
+    "System ready for deployment.",
+    "Data handshake complete."
   ];
 
   useEffect(() => {
     const dotInterval = setInterval(() => {
       setDots(prev => prev.length >= 3 ? '' : prev + '.');
+      setRandomHex(Math.random().toString(16).slice(2, 10).toUpperCase());
     }, 500);
 
     let currentLogs = stage === 0 ? extractionLogs : stage === 1 ? processingLogs : finalizationLogs;
     let idx = 0;
     const logInterval = setInterval(() => {
-      setLogMessages((prev) => [...prev.slice(-3), currentLogs[idx]]);
+      setLogMessages((prev) => [...prev.slice(-4), currentLogs[idx]]);
       idx = (idx + 1) % currentLogs.length;
-    }, 1200);
+    }, 1000);
 
     return () => {
       clearInterval(dotInterval);
@@ -537,25 +542,25 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
 
   const stages = [
     { 
-      name: 'Fetching GitHub Data', 
+      name: 'Extraction', 
       icon: Database, 
       color: 'text-blue-500', 
       accent: 'bg-blue-500/10',
-      description: 'Acquiring public repository nodes'
+      glow: 'shadow-[0_0_50px_rgba(59,130,246,0.3)]'
     },
     { 
-      name: isBattle ? 'Comparison Simulation' : 'AI Analysis', 
+      name: isBattle ? 'Battle Sim' : 'Neural Audit', 
       icon: isBattle ? Swords : Core, 
       color: isBattle ? 'text-red-500' : 'text-purple-500', 
       accent: isBattle ? 'bg-red-500/10' : 'bg-purple-500/10',
-      description: 'Running neural logic engine'
+      glow: isBattle ? 'shadow-[0_0_50px_rgba(239,68,68,0.3)]' : 'shadow-[0_0_50px_rgba(168,85,247,0.3)]'
     },
     { 
-      name: 'Final Synthesis', 
+      name: 'Solidification', 
       icon: ShieldCheck, 
       color: 'text-emerald-500', 
       accent: 'bg-emerald-500/10',
-      description: 'Packaging intelligence dossier'
+      glow: 'shadow-[0_0_50px_rgba(16,185,129,0.3)]'
     }
   ];
 
@@ -563,122 +568,128 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
   const progressPercent = ((stage + 1) / 3) * 100;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[75vh] w-full max-w-4xl mx-auto px-6 space-y-10 animate-in fade-in duration-700">
-      {/* Dynamic Tactical Visualizer */}
-      <div className="relative group">
-        <div className={`absolute inset-0 rounded-full border border-slate-200 dark:border-slate-800 animate-pulse-ring scale-150 opacity-10`}></div>
-        <div className="absolute inset-0 rounded-full border-2 border-slate-100 dark:border-slate-700 animate-spin opacity-20" style={{ animationDuration: '10s' }}></div>
+    <div className="flex flex-col items-center justify-center min-h-[75vh] w-full max-w-4xl mx-auto px-6 space-y-12 animate-in fade-in duration-700">
+      <div className="relative">
+        <div className={`absolute inset-0 z-20 pointer-events-none opacity-20 overflow-hidden rounded-full`}>
+           <div className={`w-full h-1 ${stage === 0 ? 'bg-blue-400' : stage === 1 ? (isBattle ? 'bg-red-400' : 'bg-purple-400') : 'bg-emerald-400'} animate-scan absolute`}></div>
+        </div>
+
+        <div className={`absolute inset-0 rounded-full border border-slate-200 dark:border-slate-800 animate-pulse-ring scale-[1.7] opacity-10 transition-colors duration-500 ${currentStage.color}`}></div>
+        <div className="absolute inset-0 rounded-full border-2 border-slate-100 dark:border-slate-700 animate-spin-slow opacity-20"></div>
         
-        <div className="relative z-10 w-64 h-64 rounded-full bg-white dark:bg-[#0d1424] border-4 border-slate-200 dark:border-slate-800 shadow-[0_0_100px_rgba(37,99,235,0.1)] flex items-center justify-center overflow-hidden transition-colors duration-500">
-          <div className="absolute inset-0 opacity-5 pointer-events-none">
+        <div className={`relative z-10 w-72 h-72 rounded-full bg-white dark:bg-[#0d1424] border-4 border-slate-200 dark:border-slate-800 ${currentStage.glow} flex items-center justify-center overflow-hidden transition-all duration-700`}>
+          <div className="absolute inset-0 opacity-10 pointer-events-none">
             <div className="absolute inset-0 bg-grid-slate-700/[0.1] [mask-image:radial-gradient(white,transparent)]"></div>
           </div>
           
           <div className="flex flex-col items-center gap-6 relative z-10">
-            <div className={`transition-all duration-1000 transform ${stage === 1 ? 'scale-110' : 'scale-100'}`}>
+            <div className={`transition-all duration-1000 transform ${stage === 1 ? 'scale-110 rotate-12' : 'scale-100'}`}>
                <currentStage.icon 
                  className={`${currentStage.color} animate-pulse`} 
-                 size={80} 
+                 size={90} 
                  strokeWidth={1.5}
                />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               {[0, 1, 2].map(i => (
-                <div key={i} className={`w-2 h-2 rounded-full transition-all duration-700 ${i === stage ? `${currentStage.color} scale-125 shadow-[0_0_10px_currentColor]` : 'bg-slate-200 dark:bg-slate-800'}`}></div>
+                <div key={i} className={`w-2.5 h-2.5 rounded-full transition-all duration-700 ${i === stage ? `${currentStage.color} scale-125 shadow-[0_0_15px_currentColor]` : 'bg-slate-200 dark:bg-slate-800'}`}></div>
               ))}
             </div>
           </div>
         </div>
         
-        {/* Floating Sector Indicators */}
-        <div className="absolute -top-6 -right-6 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md transition-colors duration-500">
-           <Zap className="text-yellow-500 animate-bounce" size={24} />
+        <div className="absolute -top-10 -right-10 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md shadow-xl transition-all duration-500">
+           <Zap className="text-yellow-500 animate-bounce mb-1" size={24} />
+           <span className="text-[8px] font-mono text-slate-400 opacity-50">SYNC_{randomHex}</span>
         </div>
-        <div className="absolute -bottom-6 -left-6 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md transition-colors duration-500">
-           <Binary className="text-blue-500 animate-pulse" size={24} />
+        <div className="absolute -bottom-10 -left-10 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md shadow-xl transition-all duration-500">
+           <Binary className="text-blue-500 animate-pulse mb-1" size={24} />
+           <span className="text-[8px] font-mono text-slate-400 opacity-50">PKT_V4.2</span>
         </div>
       </div>
 
-      {/* Main Message Control */}
-      <div className="text-center w-full space-y-6">
+      <div className="text-center w-full space-y-8">
         <div className="space-y-3">
-          <div className="flex items-center justify-center gap-2">
-             <span className={`w-2 h-2 rounded-full ${currentStage.color} animate-ping`}></span>
-             <h2 className="text-5xl font-black text-slate-900 dark:text-white italic uppercase tracking-tighter">
+          <div className="flex items-center justify-center gap-4">
+             <span className={`w-3 h-3 rounded-full ${currentStage.color} animate-ping`}></span>
+             <h2 className="text-6xl font-black text-slate-900 dark:text-white italic uppercase tracking-tighter">
                {message}
              </h2>
           </div>
-          <p className="text-slate-400 dark:text-slate-500 text-xs font-black uppercase tracking-[0.4em] h-5">
+          <p className="text-slate-400 dark:text-slate-500 text-xs font-black uppercase tracking-[0.6em] h-5 transition-all">
             {subMessage}{dots}
           </p>
         </div>
 
-        {/* Neural Progress Bar */}
-        <div className="max-w-2xl mx-auto w-full space-y-3">
+        <div className="max-w-3xl mx-auto w-full space-y-4">
           <div className="flex justify-between items-end">
             <div className="flex items-center gap-2">
-              <Search size={14} className="text-blue-600 dark:text-blue-500" />
-              <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Operation: {currentStage.name}</span>
+              <Activity size={14} className={`${currentStage.color} animate-pulse`} />
+              <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Operation: {currentStage.name} Protocol</span>
             </div>
-            <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{Math.round(progressPercent)}% Link Synced</span>
+            <span className="text-[10px] font-black text-slate-900 dark:text-slate-300 uppercase tracking-widest font-mono">{Math.round(progressPercent)}% Linked</span>
           </div>
           
-          <div className="h-3 w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full overflow-hidden p-0.5 shadow-inner transition-colors duration-500">
+          <div className="h-4 w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full overflow-hidden p-1 shadow-inner group relative">
              <div 
-               className={`h-full bg-gradient-to-r ${stage === 1 && isBattle ? 'from-red-600 to-red-400' : stage === 1 ? 'from-purple-600 to-purple-400' : 'from-blue-600 to-emerald-400'} rounded-full transition-all duration-1000 ease-in-out relative`}
+               className={`h-full bg-gradient-to-r ${stage === 1 && isBattle ? 'from-red-600 to-red-400' : stage === 1 ? 'from-purple-600 to-purple-400' : 'from-blue-600 to-emerald-400'} rounded-full transition-all duration-1000 ease-out relative`}
                style={{ width: `${progressPercent}%` }}
              >
                <div className="absolute inset-0 bg-white/20 animate-data-flow"></div>
+               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-20 animate-scan pointer-events-none"></div>
              </div>
           </div>
         </div>
 
-        {/* Tactical Log Console */}
-        <div className="bg-white/50 dark:bg-[#080c14]/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-left backdrop-blur-xl relative overflow-hidden group max-w-2xl mx-auto shadow-sm transition-colors duration-500">
-          <div className={`absolute top-0 left-0 w-1 h-full ${currentStage.color} opacity-50`}></div>
-          <div className="flex gap-6 items-start">
-            <div className={`p-4 rounded-xl ${currentStage.accent} ${currentStage.color} shrink-0`}>
-              <Terminal size={24} />
+        <div className="bg-white/50 dark:bg-[#080c14]/50 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 text-left backdrop-blur-3xl relative overflow-hidden group max-w-3xl mx-auto shadow-2xl transition-all duration-500">
+          <div className={`absolute top-0 left-0 w-1.5 h-full ${currentStage.color} opacity-40`}></div>
+          <div className="flex gap-8 items-start relative z-10">
+            <div className={`p-5 rounded-2xl ${currentStage.accent} ${currentStage.color} shrink-0 shadow-lg`}>
+              <Terminal size={32} />
             </div>
-            <div className="space-y-3 flex-1">
-              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+            <div className="space-y-4 flex-1 min-w-0">
+              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
                  <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                   <Activity size={12} className="animate-pulse" /> Console Uplink Active
+                   <Target size={12} className="animate-spin-slow" /> Terminal Node: DL-INT-{randomHex}
                  </p>
-                 <span className="text-[9px] font-mono text-slate-400 dark:text-slate-600">ID: DL-INT-X01</span>
+                 <span className="text-[9px] font-mono text-emerald-500 animate-pulse">STATUS: ACTIVE</span>
               </div>
-              <div className="space-y-1 h-24 overflow-hidden flex flex-col justify-end">
+              <div className="space-y-2 h-28 overflow-hidden flex flex-col justify-end">
                 {logMessages.map((log, i) => (
-                  <p key={i} className={`text-[11px] font-mono transition-all duration-300 ${i === logMessages.length - 1 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-600 opacity-40'}`}>
-                    <span className="mr-2">{'>'}</span> {log}
+                  <p key={i} className={`text-[11px] font-mono transition-all duration-300 truncate ${i === logMessages.length - 1 ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-400 dark:text-slate-600 opacity-40'}`}>
+                    <span className="mr-3 text-slate-500">[{new Date().toLocaleTimeString([], {hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit'})}]</span>
+                    <span className="mr-2 opacity-50">{'>'}</span> {log}
                   </p>
                 ))}
-                <p className="text-[11px] font-mono text-blue-500/50 animate-pulse">{'>'} Waiting for next packet...</p>
+                <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500/30 animate-pulse">
+                   <span>{'>'}</span>
+                   <div className="w-2 h-4 bg-slate-500/30"></div>
+                </div>
               </div>
             </div>
           </div>
+          <div className="absolute bottom-0 right-0 opacity-5 p-4 pointer-events-none">
+             <Layers size={120} />
+          </div>
         </div>
 
-        {/* Tactical Step Indicators */}
-        <div className="flex items-center justify-between px-6 max-w-2xl mx-auto pt-4">
+        <div className="flex items-center justify-between px-10 max-w-3xl mx-auto pt-6">
           {stages.map((s, i) => (
             <React.Fragment key={i}>
               <div className="flex flex-col items-center gap-3">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-all duration-700 ${
-                  i < stage ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-600' :
-                  i === stage ? `bg-blue-600/10 border-blue-600 ${currentStage.color} scale-110 shadow-lg` :
+                <div className={`w-16 h-16 rounded-[1.25rem] flex items-center justify-center border-2 transition-all duration-700 ${
+                  i < stage ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-600 shadow-emerald-500/10' :
+                  i === stage ? `bg-blue-600/10 border-blue-600 ${currentStage.color} scale-110 shadow-xl shadow-blue-500/20` :
                   'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-300 dark:text-slate-800'
                 }`}>
-                  {i < stage ? <ShieldCheck size={28} /> : <s.icon size={24} />}
+                  {i < stage ? <ShieldCheck size={32} /> : <s.icon size={28} />}
                 </div>
-                <div className="flex flex-col items-center">
-                  <span className={`text-[9px] font-black uppercase tracking-widest transition-colors ${i <= stage ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300 dark:text-slate-700'}`}>
-                    {s.name}
-                  </span>
-                </div>
+                <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${i <= stage ? 'text-slate-900 dark:text-slate-200' : 'text-slate-300 dark:text-slate-800'}`}>
+                  {s.name}
+                </span>
               </div>
               {i < stages.length - 1 && (
-                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800 relative mx-4 rounded-full overflow-hidden">
+                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800 relative mx-6 rounded-full overflow-hidden">
                   {i < stage && <div className="absolute inset-0 bg-emerald-500 transition-all duration-1000"></div>}
                   {i === stage && <div className="absolute inset-0 bg-blue-500 animate-data-flow"></div>}
                 </div>
