@@ -49,48 +49,76 @@ const COMPARISON_SCHEMA = {
   required: ["winner", "rationale", "suitabilityScore1", "suitabilityScore2", "comparisonPoints"]
 };
 
-export async function analyzeProfile(username: string): Promise<AIAnalysis> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
-    contents: `Analyze the GitHub profile of user "${username}". Provide a deep technical audit of their coding style, consistency, stack specialization, and seniority level based on public repo evidence.`,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: ANALYSIS_SCHEMA
-    }
-  });
+// Helper para instanciar a IA com segurança
+const getAIClient = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("API_KEY não configurada no ambiente.");
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
-  return JSON.parse(response.text || '{}');
+export async function analyzeProfile(username: string): Promise<AIAnalysis> {
+  const ai = getAIClient();
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: `Analyze the GitHub profile of user "${username}". Provide a deep technical audit of their coding style, consistency, stack specialization, and seniority level based on public repo evidence.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: ANALYSIS_SCHEMA
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("A IA retornou uma resposta vazia.");
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Erro na análise Gemini:", error);
+    throw error;
+  }
 }
 
 export async function compareProfiles(user1: string, user2: string, jd?: string): Promise<ComparisonAnalysis> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = getAIClient();
   const prompt = jd 
     ? `Compare GitHub users "${user1}" and "${user2}" specifically for the following job description: "${jd}". Determine who is the better fit.`
     : `Compare GitHub users "${user1}" and "${user2}". Who is the more senior/versatile engineer?`;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: COMPARISON_SCHEMA
-    }
-  });
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: COMPARISON_SCHEMA
+      }
+    });
 
-  return JSON.parse(response.text || '{}');
+    const text = response.text;
+    if (!text) throw new Error("A IA retornou uma resposta vazia na comparação.");
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Erro na comparação Gemini:", error);
+    throw error;
+  }
 }
 
 export async function chatAboutProfile(username: string, question: string, context: string): Promise<string> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `The user is asking about GitHub profile @${username}. 
-    Context: ${context}
-    Question: ${question}
-    
-    Answer concisely as a technical recruiter/lead engineer.`,
-  });
+  const ai = getAIClient();
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `The user is asking about GitHub profile @${username}. 
+      Context: ${context}
+      Question: ${question}
+      
+      Answer concisely as a technical recruiter/lead engineer.`,
+    });
 
-  return response.text || '';
+    return response.text || "Desculpe, não consegui processar essa pergunta agora.";
+  } catch (error) {
+    console.error("Erro no chat Gemini:", error);
+    return "Erro na conexão neural. Tente novamente.";
+  }
 }

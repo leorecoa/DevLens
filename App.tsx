@@ -34,13 +34,21 @@ function App() {
   const [repos2, setRepos2] = useState<Repository[]>([]);
 
   const [sub, setSub] = useState<UserSubscription>(() => {
-    const saved = localStorage.getItem('devlens_sub');
-    return saved ? JSON.parse(saved) : { tier: 'FREE', creditsRemaining: FREE_LIMIT, totalAnalyses: 0 };
+    try {
+      const saved = localStorage.getItem('devlens_sub');
+      return saved ? JSON.parse(saved) : { tier: 'FREE', creditsRemaining: FREE_LIMIT, totalAnalyses: 0 };
+    } catch {
+      return { tier: 'FREE', creditsRemaining: FREE_LIMIT, totalAnalyses: 0 };
+    }
   });
 
   const [folders, setFolders] = useState<PipelineFolder[]>(() => {
-    const saved = localStorage.getItem('devlens_pipeline');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('devlens_pipeline');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
   const [isPricingOpen, setIsPricingOpen] = useState(false);
@@ -592,7 +600,7 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
             </div>
             <div className="flex gap-3">
               {[0, 1, 2].map(i => (
-                <div key={i} className={`w-2.5 h-2.5 rounded-full transition-all duration-700 ${i === stage ? `${currentStage.color} scale-125 shadow-[0_0_15px_currentColor]` : 'bg-slate-200 dark:bg-slate-800'}`}></div>
+                <div key={i} className={`w-2.5 h-2.5 rounded-full transition-all duration-700 ${i === stage ? `${currentStage.color} scale-125 shadow-[0_0_15px_currentColor]` : 'bg-slate-200 bg-opacity-20'}`}></div>
               ))}
             </div>
           </div>
@@ -627,7 +635,7 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
               <Activity size={14} className={`${currentStage.color} animate-pulse`} />
               <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Operation: {currentStage.name} Protocol</span>
             </div>
-            <span className="text-[10px] font-black text-slate-900 dark:text-slate-300 uppercase tracking-widest font-mono">{Math.round(progressPercent)}% Linked</span>
+            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest font-mono">{Math.round(progressPercent)}% Linked</span>
           </div>
           
           <div className="h-4 w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full overflow-hidden p-1 shadow-inner group relative">
