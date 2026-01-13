@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Github, Terminal, Loader2, Sparkles, Swords, Users, Crown, Shield, ClipboardList, X, Target, Folders, Cpu, Database, Binary, ShieldCheck, Activity, Fingerprint, Layers, Star, GitFork, ChevronRight, FileDown, Linkedin, Twitter, Link, Network, Sun, Moon } from 'lucide-react';
+import { Github, Terminal, Loader2, Sparkles, Swords, Users, Crown, Shield, ClipboardList, X, Target, Folders, Cpu, Database, Binary, ShieldCheck, Activity, Fingerprint, Layers, Star, GitFork, ChevronRight, FileDown, Linkedin, Twitter, Link, Network, Sun, Moon, Zap, Search, Code, Cpu as Core } from 'lucide-react';
 import { analyzeProfile, compareProfiles } from './services/geminiService';
-import { supabase } from './services/supabase';
 import { AppStatus, AIAnalysis, GitHubProfile, Repository, ComparisonAnalysis, UserSubscription, PipelineFolder, SavedCandidate } from './types';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
 import { ChatWidget } from './components/ChatWidget';
@@ -18,11 +17,7 @@ function App() {
   const [jdInput, setJdInput] = useState('');
   const [isJdOpen, setIsJdOpen] = useState(false);
   
-  // Inicialização de tema a partir do localStorage ou preferência do sistema
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('devlens_theme') || 'dark';
-  });
-  
+  const [theme, setTheme] = useState(() => localStorage.getItem('devlens_theme') || 'dark');
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [loadingSubMessage, setLoadingSubMessage] = useState('');
@@ -43,39 +38,25 @@ function App() {
     return saved ? JSON.parse(saved) : { tier: 'FREE', creditsRemaining: FREE_LIMIT, totalAnalyses: 0 };
   });
 
-  const [folders, setFolders] = useState<PipelineFolder[]>([]);
-  const [isFoldersLoading, setIsFoldersLoading] = useState(true);
+  const [folders, setFolders] = useState<PipelineFolder[]>(() => {
+    const saved = localStorage.getItem('devlens_pipeline');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [isPipelineManagerOpen, setIsPipelineManagerOpen] = useState(false);
 
-  // Sincronização de preferências
   useEffect(() => {
     localStorage.setItem('devlens_sub', JSON.stringify(sub));
   }, [sub]);
 
   useEffect(() => {
-    const fetchFolders = async () => {
-      if (!supabase) {
-        setIsFoldersLoading(false);
-        return;
-      }
-      const { data, error } = await supabase.from('folders').select('*');
-      if (!error && data) setFolders(data);
-      setIsFoldersLoading(false);
-    };
-    fetchFolders();
-  }, []);
+    localStorage.setItem('devlens_pipeline', JSON.stringify(folders));
+  }, [folders]);
 
-  // Efeito principal de tema
   useEffect(() => {
-    const root = window.document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
     localStorage.setItem('devlens_theme', theme);
+    document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
 
   const toggleTheme = () => {
@@ -108,7 +89,7 @@ function App() {
     try {
       if (isCompareMode) {
         setLoadingStage(0);
-        setLoadingMessage('Estabelecendo Conexão');
+        setLoadingMessage('Fetching GitHub Data');
         setLoadingSubMessage('Mapeando identidades via nós do GitHub...');
         
         const [d1, d2] = await Promise.all([
@@ -122,20 +103,20 @@ function App() {
         setRepos2(d2.r);
         
         setLoadingStage(1);
-        setLoadingMessage('Simulação de Combate');
+        setLoadingMessage('Comparison Simulation');
         setLoadingSubMessage('Redes neurais calculando superioridade estratégica...');
         const compResult = await compareProfiles(username1, username2, jdInput);
         setComparison(compResult);
       } else {
         setLoadingStage(0);
-        setLoadingMessage('Buscando Intel');
+        setLoadingMessage('Fetching GitHub Data');
         setLoadingSubMessage('Acessando árvores de repositórios e histórico...');
         const d1 = await fetchGitHubData(username1);
         setProfile1(d1.p);
         setRepos1(d1.r);
         
         setLoadingStage(1);
-        setLoadingMessage('Decodificação Neural');
+        setLoadingMessage('AI Analysis');
         setLoadingSubMessage('Gemini 3 sondando matriz de habilidades e senioridade...');
         const aiResult = await analyzeProfile(username1);
         setAnalysis(aiResult);
@@ -161,51 +142,37 @@ function App() {
     }
   };
 
-  const handleCreateFolder = async (name: string) => {
+  const handleCreateFolder = (name: string) => {
     const newFolder: PipelineFolder = {
       id: Date.now().toString(),
       name,
       color: '#' + Math.floor(Math.random()*16777215).toString(16),
       candidates: []
     };
-
-    if (supabase) {
-      const { data: { user } } = await supabase.auth.getUser();
-      const folderToInsert = user ? { ...newFolder, user_id: user.id } : newFolder;
-      const { error } = await supabase.from('folders').insert([folderToInsert]);
-      if (error) console.error('Erro ao criar pasta:', error);
-    }
     setFolders([...folders, newFolder]);
   };
 
-  const handleDeleteFolder = async (id: string) => {
-    if (supabase) {
-      const { error } = await supabase.from('folders').delete().eq('id', id);
-      if (error) console.error('Erro ao deletar pasta:', error);
-    }
+  const handleDeleteFolder = (id: string) => {
     setFolders(folders.filter((f: PipelineFolder) => f.id !== id));
   };
 
-  const handleAddToPipeline = async (folderId: string, candidate: SavedCandidate) => {
-    const folder = folders.find(f => f.id === folderId);
-    if (!folder || folder.candidates.some(c => c.username === candidate.username)) return;
-
-    const updatedCandidates = [...folder.candidates, candidate];
-    if (supabase) {
-      await supabase.from('folders').update({ candidates: updatedCandidates }).eq('id', folderId);
-    }
-    setFolders(folders.map(f => f.id === folderId ? { ...f, candidates: updatedCandidates } : f));
+  const handleAddToPipeline = (folderId: string, candidate: SavedCandidate) => {
+    setFolders(folders.map((f: PipelineFolder) => {
+      if (f.id === folderId) {
+        if (f.candidates.some((c: SavedCandidate) => c.username === candidate.username)) return f;
+        return { ...f, candidates: [...f.candidates, candidate] };
+      }
+      return f;
+    }));
   };
 
-  const handleRemoveCandidate = async (folderId: string, username: string) => {
-    const folder = folders.find(f => f.id === folderId);
-    if (!folder) return;
-
-    const updatedCandidates = folder.candidates.filter(c => c.username !== username);
-    if (supabase) {
-      await supabase.from('folders').update({ candidates: updatedCandidates }).eq('id', folderId);
-    }
-    setFolders(folders.map(f => f.id === folderId ? { ...f, candidates: updatedCandidates } : f));
+  const handleRemoveCandidate = (folderId: string, username: string) => {
+    setFolders(folders.map((f: PipelineFolder) => {
+      if (f.id === folderId) {
+        return { ...f, candidates: f.candidates.filter((c: SavedCandidate) => c.username !== username) };
+      }
+      return f;
+    }));
   };
 
   const renderLoadingScreen = () => {
@@ -213,9 +180,9 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-[#0b0f1a] text-slate-900 dark:text-white transition-colors duration-300">
+    <div className="min-h-screen flex flex-col transition-colors duration-300 bg-slate-50 dark:bg-[#0b0f1a] text-slate-900 dark:text-white">
       {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 px-6 py-4 transition-colors">
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 px-6 py-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-6 w-full md:w-auto">
             <div className="flex items-center gap-3">
@@ -224,7 +191,7 @@ function App() {
               </div>
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white italic uppercase">DevLens</h1>
-                <p className="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-[0.2em]">Neural Intelligence Engine</p>
+                <p className="text-[10px] text-blue-500 dark:text-blue-400 font-black uppercase tracking-[0.2em]">Neural Intelligence Engine</p>
               </div>
             </div>
 
@@ -237,18 +204,14 @@ function App() {
                 <div className="flex items-center gap-2">
                   <Folders size={14} className="text-blue-500" />
                   <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                    {isFoldersLoading ? (
-                      <Loader2 size={12} className="animate-spin text-slate-500" />
-                    ) : (
-                      `${folders.reduce((acc, f) => acc + f.candidates.length, 0)} Salvos`
-                    )}
+                    {folders.reduce((acc: number, f: PipelineFolder) => acc + f.candidates.length, 0)} Salvos
                   </span>
                 </div>
               </button>
               <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
               <button 
                 onClick={() => setIsPricingOpen(true)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${sub.tier === 'PRO' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-500' : 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 dark:text-yellow-500 hover:bg-yellow-500 hover:text-black shadow-sm'}`}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${sub.tier === 'PRO' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-500' : 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 dark:text-yellow-500 hover:bg-yellow-500 hover:text-black'}`}
               >
                 {sub.tier === 'PRO' ? <Shield size={12} fill="currentColor" /> : <Crown size={12} fill="currentColor" />}
                 {sub.tier === 'PRO' ? 'Ativo Pro' : 'Go Pro'}
@@ -291,13 +254,12 @@ function App() {
             </div>
             
             <div className="flex gap-2 w-full md:w-auto">
-              {/* Botão de Toggle de Tema */}
               <button 
                 onClick={toggleTheme}
-                className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm"
+                className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all shadow-sm"
                 title="Alternar Tema"
               >
-                {theme === 'dark' ? <Sun size={18} className="text-amber-500" /> : <Moon size={18} className="text-violet-600" />}
+                {theme === 'dark' ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} className="text-violet-600" />}
               </button>
               <button 
                 onClick={() => setIsCompareMode(!isCompareMode)}
@@ -329,7 +291,7 @@ function App() {
         
         {isCompareMode && isJdOpen && (
           <div className="max-w-7xl mx-auto mt-4 animate-in slide-in-from-top duration-300">
-            <div className="bg-white/90 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl flex flex-col gap-3 backdrop-blur-md shadow-xl">
+            <div className="bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex flex-col gap-3 backdrop-blur-md shadow-xl">
                <div className="flex justify-between items-center">
                  <p className="text-[10px] font-black text-yellow-600 dark:text-yellow-500 uppercase tracking-[0.2em] flex items-center gap-2">
                    <Target size={12} /> Payload de Contexto de Vaga
@@ -374,7 +336,7 @@ function App() {
               analysis && profile1 && (
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
                   <div className="xl:col-span-8 space-y-8">
-                    <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-8 rounded-[2.5rem] relative overflow-hidden group shadow-sm transition-colors">
+                    <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-8 rounded-[2.5rem] relative overflow-hidden group shadow-sm">
                       <div className="absolute top-0 right-0 p-8 no-print">
                          <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${sub.tier === 'PRO' ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'}`}>
                             {sub.tier === 'PRO' ? <Crown size={12} fill="currentColor" /> : <Shield size={12} />}
@@ -382,13 +344,13 @@ function App() {
                          </div>
                       </div>
                       <div className="flex flex-col md:flex-row gap-8 relative z-10">
-                        <img src={profile1.avatar_url} className="w-36 h-36 rounded-[2.5rem] shadow-2xl border-4 border-slate-100 dark:border-slate-700 group-hover:scale-105 transition-transform duration-500" alt="" />
+                        <img src={profile1.avatar_url} className="w-36 h-36 rounded-[2.5rem] shadow-2xl border-4 border-white dark:border-slate-700 group-hover:scale-105 transition-transform duration-500" alt="" />
                         <div className="flex-1">
                           <h2 className="text-5xl font-black text-slate-900 dark:text-white mb-2 italic uppercase tracking-tighter leading-none">{profile1.name || profile1.login}</h2>
                           <p className="text-blue-600 dark:text-blue-400 font-bold mb-4 flex items-center gap-2 text-lg">
                              <Github size={20} /> @{profile1.login}
                           </p>
-                          <p className="text-slate-600 dark:text-slate-300 text-lg leading-relaxed italic border-l-4 border-blue-500/30 dark:border-blue-500/30 pl-6">{profile1.bio || "Sujeito operando em silêncio de rádio (Sem bio)."}</p>
+                          <p className="text-slate-600 dark:text-slate-300 text-lg leading-relaxed italic border-l-4 border-blue-500/30 pl-6">{profile1.bio || "Sujeito operando em silêncio de rádio (Sem bio)."}</p>
                           <div className="flex flex-wrap gap-8 mt-10">
                             {[
                               { label: 'Repos', val: profile1.public_repos },
@@ -436,7 +398,7 @@ function App() {
 
             <div className="relative z-10 flex flex-col items-center space-y-12 max-w-5xl px-6">
               <div className="relative group">
-                <div className="bg-white dark:bg-blue-600/10 p-12 rounded-[5rem] border border-slate-200 dark:border-blue-500/10 shadow-xl dark:shadow-[0_0_50px_rgba(37,99,235,0.1)] relative transition-all">
+                <div className="bg-white dark:bg-blue-600/10 p-12 rounded-[5rem] border border-slate-200 dark:border-blue-500/10 shadow-2xl dark:shadow-[0_0_50px_rgba(37,99,235,0.1)] relative transition-colors">
                   <Github className="text-blue-600 dark:text-blue-500 group-hover:scale-110 transition-all duration-1000" size={120} strokeWidth={1} />
                   <div className="absolute -bottom-6 -right-6 bg-yellow-500 p-6 rounded-[2.5rem] shadow-2xl border-8 border-slate-50 dark:border-[#0b0f1a]">
                     <Crown className="text-black" size={48} fill="currentColor" />
@@ -469,7 +431,7 @@ function App() {
                 </button>
                 <button 
                   onClick={() => setIsCompareMode(true)} 
-                  className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border-2 border-slate-200 dark:border-slate-800 px-16 py-8 rounded-[2.5rem] font-black text-slate-900 dark:text-white uppercase tracking-[0.2em] text-sm transition-all flex items-center justify-center gap-6 group shadow-sm"
+                  className="bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border-2 border-slate-200 dark:border-slate-800 px-16 py-8 rounded-[2.5rem] font-black text-slate-900 dark:text-white uppercase tracking-[0.2em] text-sm transition-all flex items-center justify-center gap-6 group shadow-sm"
                 >
                   <Swords size={32} className="text-slate-400 dark:text-slate-500 group-hover:text-red-500 transition-colors" />
                   Batalha Tática
@@ -480,8 +442,8 @@ function App() {
                 <div className="flex flex-col items-center">
                   <span className="text-[9px] font-black uppercase tracking-widest mb-2 opacity-50">Powered By</span>
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-600/10 flex items-center justify-center"><Cpu size={16} className="text-blue-600 dark:text-blue-500" /></div>
-                    <span className="text-xs font-bold uppercase tracking-tighter text-slate-600 dark:text-slate-400">Gemini 3 Pro</span>
+                    <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-600/10 flex items-center justify-center"><Cpu size={16} className="text-blue-600 dark:text-blue-500" /></div>
+                    <span className="text-xs font-bold uppercase tracking-tighter text-slate-500 dark:text-slate-400">Gemini 3 Pro</span>
                   </div>
                 </div>
                 <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
@@ -489,7 +451,7 @@ function App() {
                   <span className="text-[9px] font-black uppercase tracking-widest mb-2 opacity-50">Data Uplink</span>
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><Network size={16} /></div>
-                    <span className="text-xs font-bold uppercase tracking-tighter text-slate-600 dark:text-slate-400">GitHub REST v4</span>
+                    <span className="text-xs font-bold uppercase tracking-tighter text-slate-500 dark:text-slate-400">GitHub REST v4</span>
                   </div>
                 </div>
               </div>
@@ -509,102 +471,161 @@ function App() {
         />
       )}
 
-      <footer className="py-12 border-t border-slate-200 dark:border-slate-800 text-center text-slate-400 dark:text-slate-700 text-[10px] font-black uppercase tracking-[0.6em] bg-white/30 dark:bg-slate-900/30 no-print transition-colors">
+      <footer className="py-12 border-t border-slate-200 dark:border-slate-800 text-center text-slate-400 dark:text-slate-700 text-[10px] font-black uppercase tracking-[0.6em] bg-white/30 dark:bg-slate-900/30 no-print">
         DevLens // Advanced Neural Sourcing Unit // Gemini 3 Logic Engine Active
       </footer>
     </div>
   );
 }
 
-// Internal Granular Loading Screen Component
+// Optimized Granular Loading Screen Component
 const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage: number, message: string, subMessage: string, isBattle: boolean }) => {
   const [logMessages, setLogMessages] = useState<string[]>([]);
-  
-  const fetchLogs = ["Mapeando Endpoints da API...", "Solicitando autorização do nó...", "Extraindo histórico de contribuição...", "Analisando nós da árvore do repositório...", "Decodificando fragmentos de metadados do usuário..."];
-  const aiLogs = ["Inicializando Motor Lógico Gemini 3...", "Realizando análise de padrões AST...", "Medindo métricas de consistência de commit...", "Sintetizando matrizes de habilidades...", "Projetando trajetórias de senioridade..."];
-  const battleLogs = ["Estabelecendo link neural competitivo...", "Calculando desempenho lado a lado...", "Medindo paridade de DNA técnico...", "Executando algoritmos de adequação...", "Determinando vencedor estratégico..."];
-  const finalizeLogs = ["Empacotando inteligência criptografada...", "Gerando dossiês de relatórios...", "Otimizando buffers de visualização...", "Finalizando dossiês executivos...", "Pronto para implantação."];
+  const [dots, setDots] = useState('');
+
+  // Enhanced Logs for better granularity
+  const extractionLogs = [
+    "Establishing handshake with GitHub REST v4...",
+    "Retrieving primary profile metadata...",
+    "Extracting contribution heatmap...",
+    "Querying repository forest nodes...",
+    "Fetching star-to-fork ratios...",
+    "Mapping technical affiliation trees..."
+  ];
+
+  const processingLogs = isBattle ? [
+    "Initializing competitive neural link...",
+    "Loading JD context payload...",
+    "Calculating technical DNA parity...",
+    "Running side-by-side AST comparison...",
+    "Simulating workload scenarios...",
+    "Synthesizing winner rationale..."
+  ] : [
+    "Booting Gemini 3 Logic Engine...",
+    "Performing AST pattern recognition...",
+    "Auditing commit consistency metrics...",
+    "Mapping repository complexity...",
+    "Projecting career growth trajectory...",
+    "Finalizing skill matrix vectors..."
+  ];
+
+  const finalizationLogs = [
+    "Compressing neural findings...",
+    "Generating executive summary report...",
+    "Optimizing visualization buffers...",
+    "Curing final dossier fragments...",
+    "System ready for deployment."
+  ];
 
   useEffect(() => {
-    let currentLogs = stage === 0 ? fetchLogs : stage === 1 ? (isBattle ? battleLogs : aiLogs) : finalizeLogs;
+    const dotInterval = setInterval(() => {
+      setDots(prev => prev.length >= 3 ? '' : prev + '.');
+    }, 500);
+
+    let currentLogs = stage === 0 ? extractionLogs : stage === 1 ? processingLogs : finalizationLogs;
     let idx = 0;
-    const interval = setInterval(() => {
-      setLogMessages((prev: string[]) => [...prev.slice(-4), currentLogs[idx]]);
+    const logInterval = setInterval(() => {
+      setLogMessages((prev) => [...prev.slice(-3), currentLogs[idx]]);
       idx = (idx + 1) % currentLogs.length;
-    }, 800);
-    return () => clearInterval(interval);
+    }, 1200);
+
+    return () => {
+      clearInterval(dotInterval);
+      clearInterval(logInterval);
+    };
   }, [stage, isBattle]);
 
   const stages = [
-    { name: 'Extração de Dados', icon: Database, color: 'text-blue-500', accent: 'bg-blue-500/10' },
-    { name: isBattle ? 'Simulação de Batalha' : 'Auditoria Neural', icon: isBattle ? Swords : Cpu, color: isBattle ? 'text-red-500' : 'text-purple-500', accent: isBattle ? 'bg-red-500/10' : 'bg-purple-500/10' },
-    { name: 'Síntese', icon: ShieldCheck, color: 'text-emerald-500', accent: 'bg-emerald-500/10' }
+    { 
+      name: 'Fetching GitHub Data', 
+      icon: Database, 
+      color: 'text-blue-500', 
+      accent: 'bg-blue-500/10',
+      description: 'Acquiring public repository nodes'
+    },
+    { 
+      name: isBattle ? 'Comparison Simulation' : 'AI Analysis', 
+      icon: isBattle ? Swords : Core, 
+      color: isBattle ? 'text-red-500' : 'text-purple-500', 
+      accent: isBattle ? 'bg-red-500/10' : 'bg-purple-500/10',
+      description: 'Running neural logic engine'
+    },
+    { 
+      name: 'Final Synthesis', 
+      icon: ShieldCheck, 
+      color: 'text-emerald-500', 
+      accent: 'bg-emerald-500/10',
+      description: 'Packaging intelligence dossier'
+    }
   ];
 
   const currentStage = stages[stage] || stages[0];
   const progressPercent = ((stage + 1) / 3) * 100;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[75vh] w-full max-w-4xl mx-auto px-6 space-y-12 animate-in fade-in duration-500">
-      {/* Central Tactical Visualizer */}
+    <div className="flex flex-col items-center justify-center min-h-[75vh] w-full max-w-4xl mx-auto px-6 space-y-10 animate-in fade-in duration-700">
+      {/* Dynamic Tactical Visualizer */}
       <div className="relative group">
         <div className={`absolute inset-0 rounded-full border border-slate-200 dark:border-slate-800 animate-pulse-ring scale-150 opacity-10`}></div>
-        <div className="absolute inset-0 rounded-full border-2 border-slate-100 dark:border-slate-700 animate-spin opacity-30" style={{ animationDuration: '15s' }}></div>
+        <div className="absolute inset-0 rounded-full border-2 border-slate-100 dark:border-slate-700 animate-spin opacity-20" style={{ animationDuration: '10s' }}></div>
         
-        <div className="relative z-10 w-72 h-72 rounded-full bg-white dark:bg-[#0d1424] border-4 border-slate-200 dark:border-slate-800 shadow-[0_0_100px_rgba(37,99,235,0.1)] flex items-center justify-center overflow-hidden transition-colors">
-          <div className="absolute inset-0 opacity-10 pointer-events-none">
+        <div className="relative z-10 w-64 h-64 rounded-full bg-white dark:bg-[#0d1424] border-4 border-slate-200 dark:border-slate-800 shadow-[0_0_100px_rgba(37,99,235,0.1)] flex items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 opacity-5 pointer-events-none">
             <div className="absolute inset-0 bg-grid-slate-700/[0.1] [mask-image:radial-gradient(white,transparent)]"></div>
           </div>
           
-          <div className="flex flex-col items-center gap-8 relative z-10">
-            <div className={`transition-all duration-1000 transform ${stage === 1 ? 'scale-110 rotate-12' : 'scale-100'}`}>
+          <div className="flex flex-col items-center gap-6 relative z-10">
+            <div className={`transition-all duration-1000 transform ${stage === 1 ? 'scale-110' : 'scale-100'}`}>
                <currentStage.icon 
-                 className={`${currentStage.color} ${stage === 1 ? 'animate-bounce' : stage === 2 ? 'animate-pulse' : 'animate-pulse'}`} 
-                 size={100} 
+                 className={`${currentStage.color} animate-pulse`} 
+                 size={80} 
                  strokeWidth={1.5}
                />
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               {[0, 1, 2].map(i => (
-                <div key={i} className={`w-3 h-3 rounded-full transition-all duration-700 ${i === stage ? `${currentStage.color} scale-125 shadow-[0_0_15px_currentColor]` : 'bg-slate-200 dark:bg-slate-800'}`}></div>
+                <div key={i} className={`w-2 h-2 rounded-full transition-all duration-700 ${i === stage ? `${currentStage.color} scale-125 shadow-[0_0_10px_currentColor]` : 'bg-slate-200 dark:bg-slate-800'}`}></div>
               ))}
             </div>
           </div>
         </div>
         
-        {/* Decorative Orbital Elements */}
-        <div className="absolute -top-10 -right-10 w-20 h-20 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl transition-colors">
-          <Binary size={32} className="text-slate-400 dark:text-slate-600" />
+        {/* Floating Sector Indicators */}
+        <div className="absolute -top-6 -right-6 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
+           <Zap className="text-yellow-500 animate-bounce" size={24} />
         </div>
-        <div className="absolute -bottom-10 -left-10 w-20 h-20 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl transition-colors">
-          <Layers size={32} className="text-slate-400 dark:text-slate-600" />
+        <div className="absolute -bottom-6 -left-6 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
+           <Binary className="text-blue-500 animate-pulse" size={24} />
         </div>
       </div>
 
-      {/* Primary Message Area */}
-      <div className="text-center w-full space-y-8">
-        <div className="space-y-4">
-          <h2 className="text-6xl font-black text-slate-900 dark:text-white italic uppercase tracking-tighter">
-            {message}
-          </h2>
-          <p className="text-slate-400 dark:text-slate-500 text-sm font-black uppercase tracking-[0.5em] h-6">
-            {subMessage}
+      {/* Main Message Control */}
+      <div className="text-center w-full space-y-6">
+        <div className="space-y-3">
+          <div className="flex items-center justify-center gap-2">
+             <span className={`w-2 h-2 rounded-full ${currentStage.color} animate-ping`}></span>
+             <h2 className="text-5xl font-black text-slate-900 dark:text-white italic uppercase tracking-tighter">
+               {message}
+             </h2>
+          </div>
+          <p className="text-slate-400 dark:text-slate-500 text-xs font-black uppercase tracking-[0.4em] h-5">
+            {subMessage}{dots}
           </p>
         </div>
 
-        {/* Dynamic Progress Bar */}
-        <div className="max-w-2xl mx-auto w-full space-y-4">
+        {/* Neural Progress Bar */}
+        <div className="max-w-2xl mx-auto w-full space-y-3">
           <div className="flex justify-between items-end">
-            <div className="flex items-center gap-3">
-              <Activity size={18} className="text-blue-600 dark:text-blue-500" />
-              <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Protocolo Ativo</span>
+            <div className="flex items-center gap-2">
+              <Search size={14} className="text-blue-600 dark:text-blue-500" />
+              <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Operation: {currentStage.name}</span>
             </div>
-            <span className="text-sm font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{Math.round(progressPercent)}% Sincronização Completa</span>
+            <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{Math.round(progressPercent)}% Link Synced</span>
           </div>
           
-          <div className="h-4 w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full overflow-hidden p-1 shadow-[inset_0_2px_10px_rgba(0,0,0,0.1)] dark:shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] transition-colors">
+          <div className="h-3 w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full overflow-hidden p-0.5 shadow-inner transition-colors">
              <div 
-               className={`h-full bg-gradient-to-r ${stage === 1 && isBattle ? 'from-red-700 via-red-500 to-yellow-500' : 'from-blue-700 via-blue-400 to-emerald-400'} rounded-full transition-all duration-1000 ease-in-out relative`}
+               className={`h-full bg-gradient-to-r ${stage === 1 && isBattle ? 'from-red-600 to-red-400' : stage === 1 ? 'from-purple-600 to-purple-400' : 'from-blue-600 to-emerald-400'} rounded-full transition-all duration-1000 ease-in-out relative`}
                style={{ width: `${progressPercent}%` }}
              >
                <div className="absolute inset-0 bg-white/20 animate-data-flow"></div>
@@ -612,51 +633,53 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
           </div>
         </div>
 
-        {/* Real-time Operational Console */}
-        <div className="bg-white dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 rounded-[2rem] p-8 text-left backdrop-blur-3xl relative overflow-hidden group max-w-3xl mx-auto shadow-2xl transition-colors">
-          <div className={`absolute top-0 left-0 w-2 h-full ${stage === 1 && isBattle ? 'bg-red-500' : 'bg-blue-600'}`}></div>
-          <div className="flex gap-8 items-start">
-            <div className={`p-5 rounded-2xl ${currentStage.accent} ${currentStage.color} shrink-0`}>
-              <Terminal size={32} />
+        {/* Tactical Log Console */}
+        <div className="bg-white/50 dark:bg-[#080c14]/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-left backdrop-blur-xl relative overflow-hidden group max-w-2xl mx-auto shadow-sm">
+          <div className={`absolute top-0 left-0 w-1 h-full ${currentStage.color} opacity-50`}></div>
+          <div className="flex gap-6 items-start">
+            <div className={`p-4 rounded-xl ${currentStage.accent} ${currentStage.color} shrink-0`}>
+              <Terminal size={24} />
             </div>
-            <div className="space-y-4 flex-1">
-              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
-                 <p className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Neural Terminal v4.5.1</p>
-                 <div className="flex items-center gap-2">
-                   <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                   <span className="text-[10px] font-mono text-slate-400 dark:text-slate-600 uppercase">Latência: 12ms</span>
-                 </div>
+            <div className="space-y-3 flex-1">
+              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+                 <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                   <Activity size={12} className="animate-pulse" /> Console Uplink Active
+                 </p>
+                 <span className="text-[9px] font-mono text-slate-400 dark:text-slate-600">ID: DL-INT-X01</span>
               </div>
-              <div className="space-y-2 h-32 overflow-hidden flex flex-col justify-end">
+              <div className="space-y-1 h-24 overflow-hidden flex flex-col justify-end">
                 {logMessages.map((log, i) => (
-                  <p key={i} className={`text-xs font-mono transition-all duration-500 ${i === logMessages.length - 1 ? 'text-blue-600 dark:text-blue-400 translate-x-1' : 'text-slate-400 dark:text-slate-600 opacity-50'}`}>
-                    <span className="text-slate-300 dark:text-slate-800 mr-2">{'>'}</span> {log}
+                  <p key={i} className={`text-[11px] font-mono transition-all duration-300 ${i === logMessages.length - 1 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-600 opacity-40'}`}>
+                    <span className="mr-2">{'>'}</span> {log}
                   </p>
                 ))}
+                <p className="text-[11px] font-mono text-blue-500/50 animate-pulse">{'>'} Waiting for next packet...</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Tactical Stepper Component */}
-        <div className="flex items-center justify-between px-10 max-w-3xl mx-auto pt-6">
+        {/* Tactical Step Indicators */}
+        <div className="flex items-center justify-between px-6 max-w-2xl mx-auto pt-4">
           {stages.map((s, i) => (
             <React.Fragment key={i}>
-              <div className="flex flex-col items-center gap-4">
-                <div className={`w-20 h-20 rounded-3xl flex items-center justify-center border-2 transition-all duration-1000 ${
-                  i < stage ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.2)]' :
-                  i === stage ? `bg-blue-600/10 border-blue-600 dark:border-blue-500 ${currentStage.color} shadow-[0_0_50px_rgba(37,99,235,0.3)] scale-110` :
-                  'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-300 dark:text-slate-700'
+              <div className="flex flex-col items-center gap-3">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-all duration-700 ${
+                  i < stage ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-600' :
+                  i === stage ? `bg-blue-600/10 border-blue-600 ${currentStage.color} scale-110 shadow-lg` :
+                  'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-300 dark:text-slate-800'
                 }`}>
-                  {i < stage ? <ShieldCheck size={40} /> : <s.icon size={36} />}
+                  {i < stage ? <ShieldCheck size={28} /> : <s.icon size={24} />}
                 </div>
-                <span className={`text-xs font-black uppercase tracking-widest transition-colors duration-700 ${i <= stage ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300 dark:text-slate-700'}`}>
-                  {s.name}
-                </span>
+                <div className="flex flex-col items-center">
+                  <span className={`text-[9px] font-black uppercase tracking-widest transition-colors ${i <= stage ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300 dark:text-slate-700'}`}>
+                    {s.name}
+                  </span>
+                </div>
               </div>
               {i < stages.length - 1 && (
-                <div className="flex-1 h-1 bg-slate-200 dark:bg-slate-800 relative mx-6 rounded-full overflow-hidden">
-                  {i < stage && <div className="absolute inset-0 bg-emerald-500"></div>}
+                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800 relative mx-4 rounded-full overflow-hidden">
+                  {i < stage && <div className="absolute inset-0 bg-emerald-500 transition-all duration-1000"></div>}
                   {i === stage && <div className="absolute inset-0 bg-blue-500 animate-data-flow"></div>}
                 </div>
               )}
