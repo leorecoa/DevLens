@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Github, Terminal, Loader2, Sparkles, Swords, Users, Crown, Shield, ClipboardList, X, Target, Folders, Cpu, Database, Binary, ShieldCheck, Activity, Fingerprint, Layers, Star, GitFork, ChevronRight, FileDown, Linkedin, Twitter, Link, Network, Sun, Moon, Zap, Search, Code, Cpu as Core, Boxes, ZapOff } from 'lucide-react';
 import { analyzeProfile, compareProfiles } from './services/geminiService';
+import { fetchUserProfile, syncUserProfile, fetchFolders, syncFolders } from './services/supabaseService';
 import { AppStatus, AIAnalysis, GitHubProfile, Repository, ComparisonAnalysis, UserSubscription, PipelineFolder, SavedCandidate } from './types';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
 import { ChatWidget } from './components/ChatWidget';
@@ -9,7 +10,7 @@ import { ComparisonDashboard } from './components/ComparisonDashboard';
 import { PricingModal } from './components/PricingModal';
 import { PipelineManager } from './components/PipelineManager';
 
-const FREE_LIMIT = 10;
+const DEFAULT_FREE_LIMIT = 10;
 
 function App() {
   const [username1, setUsername1] = useState('gaearon'); 
@@ -33,34 +34,48 @@ function App() {
   const [repos1, setRepos1] = useState<Repository[]>([]);
   const [repos2, setRepos2] = useState<Repository[]>([]);
 
-  const [sub, setSub] = useState<UserSubscription>(() => {
-    try {
-      const saved = localStorage.getItem('devlens_sub');
-      return saved ? JSON.parse(saved) : { tier: 'FREE', creditsRemaining: FREE_LIMIT, totalAnalyses: 0 };
-    } catch {
-      return { tier: 'FREE', creditsRemaining: FREE_LIMIT, totalAnalyses: 0 };
-    }
+  const [sub, setSub] = useState<UserSubscription>({ 
+    tier: 'FREE', 
+    creditsRemaining: DEFAULT_FREE_LIMIT, 
+    totalAnalyses: 0 
   });
 
-  const [folders, setFolders] = useState<PipelineFolder[]>(() => {
-    try {
-      const saved = localStorage.getItem('devlens_pipeline');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [folders, setFolders] = useState<PipelineFolder[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [isPipelineManagerOpen, setIsPipelineManagerOpen] = useState(false);
 
+  // Inicialização: Hidratação a partir do Supabase
   useEffect(() => {
-    localStorage.setItem('devlens_sub', JSON.stringify(sub));
-  }, [sub]);
+    const initData = async () => {
+      try {
+        const remoteSub = await fetchUserProfile();
+        const remoteFolders = await fetchFolders();
+        
+        if (remoteSub) setSub(remoteSub);
+        if (remoteFolders) setFolders(remoteFolders);
+      } catch (err) {
+        console.warn("Could not hydrate data from Supabase, using defaults.");
+      } finally {
+        setIsInitialized(true);
+      }
+    };
+    initData();
+  }, []);
+
+  // Persistência reativa no Supabase e LocalStorage (apenas APÓS inicialização)
+  useEffect(() => {
+    if (isInitialized) {
+      syncUserProfile(sub);
+    }
+  }, [sub, isInitialized]);
 
   useEffect(() => {
-    localStorage.setItem('devlens_pipeline', JSON.stringify(folders));
-  }, [folders]);
+    if (isInitialized) {
+      syncFolders(folders);
+    }
+  }, [folders, isInitialized]);
 
   useEffect(() => {
     localStorage.setItem('devlens_theme', theme);
