@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Github, Terminal, Loader2, Sparkles, Swords, Users, Crown, Shield, ClipboardList, X, Target, Folders, Cpu, Database, Binary, ShieldCheck, Activity, Fingerprint, Layers, Star, GitFork, ChevronRight, FileDown, Linkedin, Twitter, Link, Network } from 'lucide-react';
+import { Github, Terminal, Loader2, Sparkles, Swords, Users, Crown, Shield, ClipboardList, X, Target, Folders, Cpu, Database, Binary, ShieldCheck, Activity, Fingerprint, Layers, Star, GitFork, ChevronRight, FileDown, Linkedin, Twitter, Link, Network, Sun, Moon } from 'lucide-react';
 import { analyzeProfile, compareProfiles } from './services/geminiService';
 import { AppStatus, AIAnalysis, GitHubProfile, Repository, ComparisonAnalysis, UserSubscription, PipelineFolder, SavedCandidate } from './types';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
@@ -17,6 +16,11 @@ function App() {
   const [isCompareMode, setIsCompareMode] = useState(false);
   const [jdInput, setJdInput] = useState('');
   const [isJdOpen, setIsJdOpen] = useState(false);
+  
+  // Inicialização de tema a partir do localStorage ou preferência do sistema
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('devlens_theme') || 'dark';
+  });
   
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [loadingMessage, setLoadingMessage] = useState('');
@@ -46,6 +50,7 @@ function App() {
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [isPipelineManagerOpen, setIsPipelineManagerOpen] = useState(false);
 
+  // Sincronização de preferências
   useEffect(() => {
     localStorage.setItem('devlens_sub', JSON.stringify(sub));
   }, [sub]);
@@ -53,6 +58,21 @@ function App() {
   useEffect(() => {
     localStorage.setItem('devlens_pipeline', JSON.stringify(folders));
   }, [folders]);
+
+  // Efeito principal de tema
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('devlens_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
 
   const fetchGitHubData = async (user: string) => {
     const [pRes, rRes] = await Promise.all([
@@ -171,9 +191,9 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0b0f1a] text-white">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-[#0b0f1a] text-slate-900 dark:text-white transition-colors duration-300">
       {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-slate-800 px-6 py-4">
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 px-6 py-4 transition-colors">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-6 w-full md:w-auto">
             <div className="flex items-center gap-3">
@@ -181,28 +201,28 @@ function App() {
                 <Terminal className="text-white" size={24} />
               </div>
               <div>
-                <h1 className="text-xl font-bold tracking-tight text-white italic uppercase">DevLens</h1>
-                <p className="text-[10px] text-blue-400 font-black uppercase tracking-[0.2em]">Neural Intelligence Engine</p>
+                <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white italic uppercase">DevLens</h1>
+                <p className="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-[0.2em]">Neural Intelligence Engine</p>
               </div>
             </div>
 
-            <div className="hidden lg:flex items-center gap-6 pl-6 border-l border-slate-800">
+            <div className="hidden lg:flex items-center gap-6 pl-6 border-l border-slate-200 dark:border-slate-800">
               <button 
                 onClick={() => setIsPipelineManagerOpen(true)}
                 className="flex flex-col items-start group"
               >
-                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-blue-400 transition-colors">Talent Pipeline</span>
+                <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">Talent Pipeline</span>
                 <div className="flex items-center gap-2">
                   <Folders size={14} className="text-blue-500" />
-                  <span className="text-xs font-bold text-slate-300">
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
                     {folders.reduce((acc: number, f: PipelineFolder) => acc + f.candidates.length, 0)} Salvos
                   </span>
                 </div>
               </button>
-              <div className="h-8 w-px bg-slate-800"></div>
+              <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
               <button 
                 onClick={() => setIsPricingOpen(true)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${sub.tier === 'PRO' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-500' : 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 hover:bg-yellow-500 hover:text-black'}`}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${sub.tier === 'PRO' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-500' : 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 dark:text-yellow-500 hover:bg-yellow-500 hover:text-black shadow-sm'}`}
               >
                 {sub.tier === 'PRO' ? <Shield size={12} fill="currentColor" /> : <Crown size={12} fill="currentColor" />}
                 {sub.tier === 'PRO' ? 'Ativo Pro' : 'Go Pro'}
@@ -213,7 +233,7 @@ function App() {
           <div className="flex flex-col md:flex-row items-center gap-3 w-full max-w-2xl">
             <div className="flex items-center gap-2 w-full">
               <div className="relative flex-1">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">
                   <Github size={16} />
                 </div>
                 <input 
@@ -221,15 +241,15 @@ function App() {
                   value={username1}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername1(e.target.value)}
                   placeholder="Perfil Principal"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl py-2.5 pl-9 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 pl-9 pr-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
                 />
               </div>
               
               {isCompareMode && (
                 <>
-                  <Swords className="text-slate-600 shrink-0 animate-pulse" size={16} />
+                  <Swords className="text-slate-400 dark:text-slate-600 shrink-0 animate-pulse" size={16} />
                   <div className="relative flex-1 animate-in slide-in-from-right duration-300">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">
                       <Github size={16} />
                     </div>
                     <input 
@@ -237,7 +257,7 @@ function App() {
                       value={username2}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername2(e.target.value)}
                       placeholder="Perfil Oponente"
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl py-2.5 pl-9 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 pl-9 pr-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
                     />
                   </div>
                 </>
@@ -245,9 +265,17 @@ function App() {
             </div>
             
             <div className="flex gap-2 w-full md:w-auto">
+              {/* Botão de Toggle de Tema */}
+              <button 
+                onClick={toggleTheme}
+                className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm"
+                title="Alternar Tema"
+              >
+                {theme === 'dark' ? <Sun size={18} className="text-amber-500" /> : <Moon size={18} className="text-violet-600" />}
+              </button>
               <button 
                 onClick={() => setIsCompareMode(!isCompareMode)}
-                className={`p-2.5 rounded-xl border transition-all ${isCompareMode ? 'bg-blue-600/10 border-blue-500 text-blue-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}
+                className={`p-2.5 rounded-xl border transition-all shadow-sm ${isCompareMode ? 'bg-blue-600/10 border-blue-500 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'}`}
                 title="Alternar Batalha"
               >
                 <Users size={18} />
@@ -255,7 +283,7 @@ function App() {
               {isCompareMode && (
                 <button 
                   onClick={() => setIsJdOpen(!isJdOpen)}
-                  className={`p-2.5 rounded-xl border transition-all ${jdInput ? 'bg-yellow-500/10 border-yellow-500 text-yellow-500' : 'bg-slate-800 border-slate-700 text-slate-400'}`}
+                  className={`p-2.5 rounded-xl border transition-all shadow-sm ${jdInput ? 'bg-yellow-500/10 border-yellow-500 text-yellow-600 dark:text-yellow-500' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'}`}
                   title="Anexar Vaga"
                 >
                   <ClipboardList size={18} />
@@ -275,18 +303,18 @@ function App() {
         
         {isCompareMode && isJdOpen && (
           <div className="max-w-7xl mx-auto mt-4 animate-in slide-in-from-top duration-300">
-            <div className="bg-slate-800/80 border border-slate-700 p-4 rounded-2xl flex flex-col gap-3 backdrop-blur-md">
+            <div className="bg-white/90 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl flex flex-col gap-3 backdrop-blur-md shadow-xl">
                <div className="flex justify-between items-center">
-                 <p className="text-[10px] font-black text-yellow-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                 <p className="text-[10px] font-black text-yellow-600 dark:text-yellow-500 uppercase tracking-[0.2em] flex items-center gap-2">
                    <Target size={12} /> Payload de Contexto de Vaga
                  </p>
-                 <button onClick={() => setIsJdOpen(false)}><X size={14} className="text-slate-500 hover:text-white" /></button>
+                 <button onClick={() => setIsJdOpen(false)}><X size={14} className="text-slate-400 hover:text-slate-900 dark:text-slate-500 dark:hover:text-white" /></button>
                </div>
                <textarea 
                   value={jdInput}
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setJdInput(e.target.value)}
                   placeholder="Cole a descrição da vaga para análise de fit especializado..."
-                  className="w-full h-24 bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-yellow-500 custom-scrollbar"
+                  className="w-full h-24 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-yellow-500 custom-scrollbar"
                />
             </div>
           </div>
@@ -300,9 +328,9 @@ function App() {
         {status === AppStatus.ERROR && (
           <div className="flex flex-col items-center justify-center h-[60vh] text-center animate-in zoom-in duration-300">
             <Fingerprint className="text-red-500 mb-6" size={64} />
-            <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tight">Mau funcionamento do sistema</h2>
-            <p className="text-slate-400 max-w-md text-sm mb-8 italic">{error}</p>
-            <button onClick={handleAnalyze} className="bg-slate-800 border border-slate-700 px-10 py-4 rounded-2xl text-white font-black uppercase tracking-widest text-xs hover:bg-slate-700 transition-all">Tentar Novamente</button>
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">Mau funcionamento do sistema</h2>
+            <p className="text-slate-600 dark:text-slate-400 max-w-md text-sm mb-8 italic">{error}</p>
+            <button onClick={handleAnalyze} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-10 py-4 rounded-2xl text-slate-900 dark:text-white font-black uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm">Tentar Novamente</button>
           </div>
         )}
 
@@ -320,21 +348,21 @@ function App() {
               analysis && profile1 && (
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
                   <div className="xl:col-span-8 space-y-8">
-                    <div className="bg-slate-900/40 border border-slate-800 p-8 rounded-[2.5rem] relative overflow-hidden group">
+                    <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-8 rounded-[2.5rem] relative overflow-hidden group shadow-sm transition-colors">
                       <div className="absolute top-0 right-0 p-8 no-print">
-                         <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${sub.tier === 'PRO' ? 'bg-yellow-500 text-black' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}>
+                         <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${sub.tier === 'PRO' ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'}`}>
                             {sub.tier === 'PRO' ? <Crown size={12} fill="currentColor" /> : <Shield size={12} />}
                             Conta {sub.tier}
                          </div>
                       </div>
                       <div className="flex flex-col md:flex-row gap-8 relative z-10">
-                        <img src={profile1.avatar_url} className="w-36 h-36 rounded-[2.5rem] shadow-2xl border-4 border-slate-700 group-hover:scale-105 transition-transform duration-500" alt="" />
+                        <img src={profile1.avatar_url} className="w-36 h-36 rounded-[2.5rem] shadow-2xl border-4 border-slate-100 dark:border-slate-700 group-hover:scale-105 transition-transform duration-500" alt="" />
                         <div className="flex-1">
-                          <h2 className="text-5xl font-black text-white mb-2 italic uppercase tracking-tighter leading-none">{profile1.name || profile1.login}</h2>
-                          <p className="text-blue-400 font-bold mb-4 flex items-center gap-2 text-lg">
+                          <h2 className="text-5xl font-black text-slate-900 dark:text-white mb-2 italic uppercase tracking-tighter leading-none">{profile1.name || profile1.login}</h2>
+                          <p className="text-blue-600 dark:text-blue-400 font-bold mb-4 flex items-center gap-2 text-lg">
                              <Github size={20} /> @{profile1.login}
                           </p>
-                          <p className="text-slate-300 text-lg leading-relaxed italic border-l-4 border-blue-500/30 pl-6">{profile1.bio || "Sujeito operando em silêncio de rádio (Sem bio)."}</p>
+                          <p className="text-slate-600 dark:text-slate-300 text-lg leading-relaxed italic border-l-4 border-blue-500/30 dark:border-blue-500/30 pl-6">{profile1.bio || "Sujeito operando em silêncio de rádio (Sem bio)."}</p>
                           <div className="flex flex-wrap gap-8 mt-10">
                             {[
                               { label: 'Repos', val: profile1.public_repos },
@@ -342,8 +370,8 @@ function App() {
                               { label: 'Following', val: profile1.following }
                             ].map(stat => (
                               <div key={stat.label}>
-                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">{stat.label}</p>
-                                <p className="text-3xl font-black text-white">{stat.val}</p>
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest mb-1">{stat.label}</p>
+                                <p className="text-3xl font-black text-slate-900 dark:text-white">{stat.val}</p>
                               </div>
                             ))}
                           </div>
@@ -376,30 +404,30 @@ function App() {
           <div className="relative min-h-[80vh] flex flex-col items-center justify-center text-center overflow-hidden">
             {/* Capa Background Visuals */}
             <div className="absolute inset-0 z-0 pointer-events-none">
-              <div className="absolute inset-0 bg-grid-slate-700/[0.05] [mask-image:radial-gradient(white,transparent)]"></div>
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/5 rounded-full blur-[120px]"></div>
+              <div className="absolute inset-0 bg-grid-slate-200 dark:bg-grid-slate-700/[0.05] [mask-image:radial-gradient(white,transparent)]"></div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/5 dark:bg-blue-600/5 rounded-full blur-[120px]"></div>
             </div>
 
             <div className="relative z-10 flex flex-col items-center space-y-12 max-w-5xl px-6">
               <div className="relative group">
-                <div className="bg-blue-600/10 p-12 rounded-[5rem] border border-blue-500/10 shadow-[0_0_50px_rgba(37,99,235,0.1)] relative">
-                  <Github className="text-blue-500 group-hover:scale-110 transition-all duration-1000" size={120} strokeWidth={1} />
-                  <div className="absolute -bottom-6 -right-6 bg-yellow-500 p-6 rounded-[2.5rem] shadow-2xl border-8 border-[#0b0f1a]">
+                <div className="bg-white dark:bg-blue-600/10 p-12 rounded-[5rem] border border-slate-200 dark:border-blue-500/10 shadow-xl dark:shadow-[0_0_50px_rgba(37,99,235,0.1)] relative transition-all">
+                  <Github className="text-blue-600 dark:text-blue-500 group-hover:scale-110 transition-all duration-1000" size={120} strokeWidth={1} />
+                  <div className="absolute -bottom-6 -right-6 bg-yellow-500 p-6 rounded-[2.5rem] shadow-2xl border-8 border-slate-50 dark:border-[#0b0f1a]">
                     <Crown className="text-black" size={48} fill="currentColor" />
                   </div>
                 </div>
                 {/* Orbital Ring */}
-                <div className="absolute inset-0 -m-8 border-2 border-slate-800 rounded-[6rem] animate-spin-slow opacity-20 border-dashed"></div>
+                <div className="absolute inset-0 -m-8 border-2 border-slate-200 dark:border-slate-800 rounded-[6rem] animate-spin-slow opacity-20 border-dashed"></div>
               </div>
 
               <div className="space-y-8">
                 <div className="space-y-4">
-                  <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.8em]">Protocolo de Recrutamento Neural</p>
-                  <h2 className="text-8xl font-black text-white italic uppercase tracking-tighter leading-[0.8]">
-                    Inteligência <br/> <span className="text-blue-500">Recruitment</span> <br/> Neural
+                  <p className="text-[10px] font-black text-blue-600 dark:text-blue-500 uppercase tracking-[0.8em]">Protocolo de Recrutamento Neural</p>
+                  <h2 className="text-8xl font-black text-slate-900 dark:text-white italic uppercase tracking-tighter leading-[0.8]">
+                    Inteligência <br/> <span className="text-blue-600 dark:text-blue-500">Recruitment</span> <br/> Neural
                   </h2>
                 </div>
-                <p className="text-slate-400 text-2xl leading-relaxed italic max-w-3xl mx-auto font-medium">
+                <p className="text-slate-600 dark:text-slate-400 text-2xl leading-relaxed italic max-w-3xl mx-auto font-medium">
                   Sonde perfis do GitHub com Gemini 3. Audite habilidades, preveja senioridade e compare DNA técnico através de árvores de repositórios públicos.
                 </p>
               </div>
@@ -415,27 +443,27 @@ function App() {
                 </button>
                 <button 
                   onClick={() => setIsCompareMode(true)} 
-                  className="bg-slate-900 hover:bg-slate-800 border-2 border-slate-800 px-16 py-8 rounded-[2.5rem] font-black text-white uppercase tracking-[0.2em] text-sm transition-all flex items-center justify-center gap-6 group"
+                  className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border-2 border-slate-200 dark:border-slate-800 px-16 py-8 rounded-[2.5rem] font-black text-slate-900 dark:text-white uppercase tracking-[0.2em] text-sm transition-all flex items-center justify-center gap-6 group shadow-sm"
                 >
-                  <Swords size={32} className="text-slate-500 group-hover:text-red-500 transition-colors" />
+                  <Swords size={32} className="text-slate-400 dark:text-slate-500 group-hover:text-red-500 transition-colors" />
                   Batalha Tática
                 </button>
               </div>
 
-              <div className="pt-20 flex items-center gap-12 text-slate-700">
+              <div className="pt-20 flex items-center gap-12 text-slate-400 dark:text-slate-700">
                 <div className="flex flex-col items-center">
                   <span className="text-[9px] font-black uppercase tracking-widest mb-2 opacity-50">Powered By</span>
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-600/10 flex items-center justify-center"><Cpu size={16} className="text-blue-500" /></div>
-                    <span className="text-xs font-bold uppercase tracking-tighter">Gemini 3 Pro</span>
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-600/10 flex items-center justify-center"><Cpu size={16} className="text-blue-600 dark:text-blue-500" /></div>
+                    <span className="text-xs font-bold uppercase tracking-tighter text-slate-600 dark:text-slate-400">Gemini 3 Pro</span>
                   </div>
                 </div>
-                <div className="h-8 w-px bg-slate-800"></div>
+                <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
                 <div className="flex flex-col items-center">
                   <span className="text-[9px] font-black uppercase tracking-widest mb-2 opacity-50">Data Uplink</span>
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center"><Network size={16} /></div>
-                    <span className="text-xs font-bold uppercase tracking-tighter">GitHub REST v4</span>
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><Network size={16} /></div>
+                    <span className="text-xs font-bold uppercase tracking-tighter text-slate-600 dark:text-slate-400">GitHub REST v4</span>
                   </div>
                 </div>
               </div>
@@ -455,7 +483,7 @@ function App() {
         />
       )}
 
-      <footer className="py-12 border-t border-slate-800 text-center text-slate-700 text-[10px] font-black uppercase tracking-[0.6em] bg-slate-900/30 no-print">
+      <footer className="py-12 border-t border-slate-200 dark:border-slate-800 text-center text-slate-400 dark:text-slate-700 text-[10px] font-black uppercase tracking-[0.6em] bg-white/30 dark:bg-slate-900/30 no-print transition-colors">
         DevLens // Advanced Neural Sourcing Unit // Gemini 3 Logic Engine Active
       </footer>
     </div>
@@ -494,10 +522,10 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
     <div className="flex flex-col items-center justify-center min-h-[75vh] w-full max-w-4xl mx-auto px-6 space-y-12 animate-in fade-in duration-500">
       {/* Central Tactical Visualizer */}
       <div className="relative group">
-        <div className={`absolute inset-0 rounded-full border border-slate-800 animate-pulse-ring scale-150 opacity-10`}></div>
-        <div className="absolute inset-0 rounded-full border-2 border-slate-700 animate-spin opacity-30" style={{ animationDuration: '15s' }}></div>
+        <div className={`absolute inset-0 rounded-full border border-slate-200 dark:border-slate-800 animate-pulse-ring scale-150 opacity-10`}></div>
+        <div className="absolute inset-0 rounded-full border-2 border-slate-100 dark:border-slate-700 animate-spin opacity-30" style={{ animationDuration: '15s' }}></div>
         
-        <div className="relative z-10 w-72 h-72 rounded-full bg-[#0d1424] border-4 border-slate-800 shadow-[0_0_100px_rgba(37,99,235,0.1)] flex items-center justify-center overflow-hidden">
+        <div className="relative z-10 w-72 h-72 rounded-full bg-white dark:bg-[#0d1424] border-4 border-slate-200 dark:border-slate-800 shadow-[0_0_100px_rgba(37,99,235,0.1)] flex items-center justify-center overflow-hidden transition-colors">
           <div className="absolute inset-0 opacity-10 pointer-events-none">
             <div className="absolute inset-0 bg-grid-slate-700/[0.1] [mask-image:radial-gradient(white,transparent)]"></div>
           </div>
@@ -512,28 +540,28 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
             </div>
             <div className="flex gap-3">
               {[0, 1, 2].map(i => (
-                <div key={i} className={`w-3 h-3 rounded-full transition-all duration-700 ${i === stage ? `${currentStage.color} scale-125 shadow-[0_0_15px_currentColor]` : 'bg-slate-800'}`}></div>
+                <div key={i} className={`w-3 h-3 rounded-full transition-all duration-700 ${i === stage ? `${currentStage.color} scale-125 shadow-[0_0_15px_currentColor]` : 'bg-slate-200 dark:bg-slate-800'}`}></div>
               ))}
             </div>
           </div>
         </div>
         
         {/* Decorative Orbital Elements */}
-        <div className="absolute -top-10 -right-10 w-20 h-20 border border-slate-800 rounded-2xl flex items-center justify-center bg-slate-900/40 backdrop-blur-xl">
-          <Binary size={32} className="text-slate-600" />
+        <div className="absolute -top-10 -right-10 w-20 h-20 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl transition-colors">
+          <Binary size={32} className="text-slate-400 dark:text-slate-600" />
         </div>
-        <div className="absolute -bottom-10 -left-10 w-20 h-20 border border-slate-800 rounded-2xl flex items-center justify-center bg-slate-900/40 backdrop-blur-xl">
-          <Layers size={32} className="text-slate-600" />
+        <div className="absolute -bottom-10 -left-10 w-20 h-20 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl transition-colors">
+          <Layers size={32} className="text-slate-400 dark:text-slate-600" />
         </div>
       </div>
 
       {/* Primary Message Area */}
       <div className="text-center w-full space-y-8">
         <div className="space-y-4">
-          <h2 className="text-6xl font-black text-white italic uppercase tracking-tighter">
+          <h2 className="text-6xl font-black text-slate-900 dark:text-white italic uppercase tracking-tighter">
             {message}
           </h2>
-          <p className="text-slate-500 text-sm font-black uppercase tracking-[0.5em] h-6">
+          <p className="text-slate-400 dark:text-slate-500 text-sm font-black uppercase tracking-[0.5em] h-6">
             {subMessage}
           </p>
         </div>
@@ -542,13 +570,13 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
         <div className="max-w-2xl mx-auto w-full space-y-4">
           <div className="flex justify-between items-end">
             <div className="flex items-center gap-3">
-              <Activity size={18} className="text-blue-500" />
-              <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Protocolo Ativo</span>
+              <Activity size={18} className="text-blue-600 dark:text-blue-500" />
+              <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Protocolo Ativo</span>
             </div>
-            <span className="text-sm font-black text-blue-400 uppercase tracking-widest">{Math.round(progressPercent)}% Sincronização Completa</span>
+            <span className="text-sm font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{Math.round(progressPercent)}% Sincronização Completa</span>
           </div>
           
-          <div className="h-4 w-full bg-slate-900 border border-slate-800 rounded-full overflow-hidden p-1 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+          <div className="h-4 w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full overflow-hidden p-1 shadow-[inset_0_2px_10px_rgba(0,0,0,0.1)] dark:shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] transition-colors">
              <div 
                className={`h-full bg-gradient-to-r ${stage === 1 && isBattle ? 'from-red-700 via-red-500 to-yellow-500' : 'from-blue-700 via-blue-400 to-emerald-400'} rounded-full transition-all duration-1000 ease-in-out relative`}
                style={{ width: `${progressPercent}%` }}
@@ -559,24 +587,24 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
         </div>
 
         {/* Real-time Operational Console */}
-        <div className="bg-[#080c14] border border-slate-800 rounded-[2rem] p-8 text-left backdrop-blur-3xl relative overflow-hidden group max-w-3xl mx-auto shadow-2xl">
+        <div className="bg-white dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 rounded-[2rem] p-8 text-left backdrop-blur-3xl relative overflow-hidden group max-w-3xl mx-auto shadow-2xl transition-colors">
           <div className={`absolute top-0 left-0 w-2 h-full ${stage === 1 && isBattle ? 'bg-red-500' : 'bg-blue-600'}`}></div>
           <div className="flex gap-8 items-start">
             <div className={`p-5 rounded-2xl ${currentStage.accent} ${currentStage.color} shrink-0`}>
               <Terminal size={32} />
             </div>
             <div className="space-y-4 flex-1">
-              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                 <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Neural Terminal v4.5.1</p>
+              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                 <p className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Neural Terminal v4.5.1</p>
                  <div className="flex items-center gap-2">
                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                   <span className="text-[10px] font-mono text-slate-600 uppercase">Latência: 12ms</span>
+                   <span className="text-[10px] font-mono text-slate-400 dark:text-slate-600 uppercase">Latência: 12ms</span>
                  </div>
               </div>
               <div className="space-y-2 h-32 overflow-hidden flex flex-col justify-end">
                 {logMessages.map((log, i) => (
-                  <p key={i} className={`text-xs font-mono transition-all duration-500 ${i === logMessages.length - 1 ? 'text-blue-400 translate-x-1' : 'text-slate-600 opacity-50'}`}>
-                    <span className="text-slate-800 mr-2">{'>'}</span> {log}
+                  <p key={i} className={`text-xs font-mono transition-all duration-500 ${i === logMessages.length - 1 ? 'text-blue-600 dark:text-blue-400 translate-x-1' : 'text-slate-400 dark:text-slate-600 opacity-50'}`}>
+                    <span className="text-slate-300 dark:text-slate-800 mr-2">{'>'}</span> {log}
                   </p>
                 ))}
               </div>
@@ -590,18 +618,18 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
             <React.Fragment key={i}>
               <div className="flex flex-col items-center gap-4">
                 <div className={`w-20 h-20 rounded-3xl flex items-center justify-center border-2 transition-all duration-1000 ${
-                  i < stage ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.2)]' :
-                  i === stage ? `bg-blue-600/10 border-blue-500 ${currentStage.color} shadow-[0_0_50px_rgba(37,99,235,0.3)] scale-110` :
-                  'bg-slate-900 border-slate-800 text-slate-700'
+                  i < stage ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.2)]' :
+                  i === stage ? `bg-blue-600/10 border-blue-600 dark:border-blue-500 ${currentStage.color} shadow-[0_0_50px_rgba(37,99,235,0.3)] scale-110` :
+                  'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-300 dark:text-slate-700'
                 }`}>
                   {i < stage ? <ShieldCheck size={40} /> : <s.icon size={36} />}
                 </div>
-                <span className={`text-xs font-black uppercase tracking-widest transition-colors duration-700 ${i <= stage ? 'text-slate-300' : 'text-slate-700'}`}>
+                <span className={`text-xs font-black uppercase tracking-widest transition-colors duration-700 ${i <= stage ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300 dark:text-slate-700'}`}>
                   {s.name}
                 </span>
               </div>
               {i < stages.length - 1 && (
-                <div className="flex-1 h-1 bg-slate-800 relative mx-6 rounded-full overflow-hidden">
+                <div className="flex-1 h-1 bg-slate-200 dark:bg-slate-800 relative mx-6 rounded-full overflow-hidden">
                   {i < stage && <div className="absolute inset-0 bg-emerald-500"></div>}
                   {i === stage && <div className="absolute inset-0 bg-blue-500 animate-data-flow"></div>}
                 </div>

@@ -5,31 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DevLens | Neural Talent Intelligence</title>
     
-    <!-- Favicon (Navegador) -->
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><polyline points='8 12 11 15 16 10'/></svg>">
 
-    <!-- Metadados de Redes Sociais (Capa / Open Graph) -->
-    <meta name="description" content="Advanced developer sourcing and analysis platform powered by Gemini 3. Audit GitHub profiles and compare technical talent with neural intelligence.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://devlens.ai/">
-    <meta property="og:title" content="DevLens | Neural Talent Intelligence">
-    <meta property="og:description" content="Audit technical DNA and seniority of developers using the power of Gemini 3.">
-    <meta property="og:image" content="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1200&auto=format&fit=crop">
-    
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://devlens.ai/">
-    <meta property="twitter:title" content="DevLens | Neural Talent Intelligence">
-    <meta property="twitter:description" content="Audit technical DNA and seniority of developers using the power of Gemini 3.">
-    <meta property="twitter:image" content="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1200&auto=format&fit=crop">
+    <!-- Theme Guard: Previne flash de cores antes do React carregar -->
+    <script>
+      (function() {
+        const theme = localStorage.getItem('devlens_theme') || 'dark';
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              neural: {
+                dark: '#0b0f1a',
+                light: '#f8fafc'
+              }
+            }
+          }
+        }
+      }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #0b0f1a;
-        color: white;
+        transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       }
       .custom-scrollbar::-webkit-scrollbar {
         width: 6px;
@@ -38,10 +49,16 @@
         background: transparent;
       }
       .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #1e293b;
+        background: #e2e8f0;
         border-radius: 10px;
       }
+      .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #1e293b;
+      }
       .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+      .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: #334155;
       }
 
@@ -71,28 +88,6 @@
         animation: data-flow 1.5s linear infinite;
       }
 
-      @keyframes glitch {
-        0% { clip: rect(44px, 450px, 56px, 0); }
-        5% { clip: rect(12px, 450px, 76px, 0); }
-        10% { clip: rect(98px, 450px, 12px, 0); }
-        15% { clip: rect(44px, 450px, 56px, 0); }
-      }
-      .animate-glitch {
-        position: relative;
-      }
-      .animate-glitch::after {
-        content: attr(data-text);
-        position: absolute;
-        left: 2px;
-        text-shadow: -1px 0 red;
-        top: 0;
-        color: white;
-        background: #0b0f1a;
-        overflow: hidden;
-        clip: rect(0, 900px, 0, 0);
-        animation: glitch 2s infinite linear alternate-reverse;
-      }
-
       @keyframes spin-slow {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
@@ -102,87 +97,28 @@
       }
 
       @media print {
-        @page {
-          margin: 1.5cm;
-          size: auto;
-        }
-        
-        body {
-          background-color: white !important;
-          color: #0f172a !important;
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
-
-        header, footer, .no-print, button, input, textarea, .xl\:col-span-4 {
-          display: none !important;
-        }
-
-        main {
-          padding: 0 !important;
-          margin: 0 !important;
-          max-width: 100% !important;
-          width: 100% !important;
-        }
-
-        .bg-slate-900\/60, .bg-slate-900\/40, .bg-slate-800\/50, .bg-slate-800, .bg-slate-900 {
-          background-color: #f8fafc !important;
-          border: 1px solid #e2e8f0 !important;
-          color: #0f172a !important;
-          box-shadow: none !important;
-          backdrop-filter: none !important;
-        }
-
-        .text-white, .text-slate-200, .text-slate-300, .text-slate-400 {
-          color: #1e293b !important;
-        }
-
-        .text-blue-500, .text-blue-400 {
-          color: #2563eb !important;
-        }
-
-        .text-emerald-500, .text-emerald-400 {
-          color: #059669 !important;
-        }
-
-        .text-red-500, .text-red-400 {
-          color: #dc2626 !important;
-        }
-
-        .border-slate-800, .border-slate-700 {
-          border-color: #e2e8f0 !important;
-        }
-
-        canvas, svg {
-          filter: none !important;
-          max-width: 100% !important;
-        }
-
-        .rounded-\[2rem\], .rounded-\[2\.5rem\], .rounded-3xl {
-          border-radius: 1rem !important;
-        }
-
-        .grid, .bg-slate-900\/60 {
-          page-break-inside: avoid;
-        }
+        @page { margin: 1.5cm; size: auto; }
+        body { background-color: white !important; color: #0f172a !important; print-color-adjust: exact !important; }
+        header, footer, .no-print, button, input, textarea, .xl\:col-span-4 { display: none !important; }
+        main { padding: 0 !important; margin: 0 !important; max-width: 100% !important; width: 100% !important; }
       }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "recharts": "https://esm.sh/recharts@^3.6.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "vite": "https://esm.sh/vite@^7.3.1"
-  }
-}
-</script>
-</head>
-  <body>
+    <script type="importmap">
+    {
+      "imports": {
+        "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+        "react/": "https://esm.sh/react@^19.2.3/",
+        "react": "https://esm.sh/react@^19.2.3",
+        "recharts": "https://esm.sh/recharts@^3.6.0",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+        "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
+        "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+        "vite": "https://esm.sh/vite@^7.3.1"
+      }
+    }
+    </script>
+  </head>
+  <body class="bg-slate-50 dark:bg-[#0b0f1a] text-slate-900 dark:text-white">
     <div id="root"></div>
   </body>
 </html>
