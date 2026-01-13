@@ -51,9 +51,9 @@ const COMPARISON_SCHEMA = {
 
 // Helper para instanciar a IA com segurança
 const getAIClient = () => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = (import.meta as any).env.VITE_GOOGLE_API_KEY;
   if (!apiKey) {
-    throw new Error("API_KEY não configurada no ambiente.");
+    throw new Error("Chave da API (VITE_GOOGLE_API_KEY) não encontrada. Verifique o arquivo .env.");
   }
   return new GoogleGenAI({ apiKey });
 };
@@ -62,7 +62,7 @@ export async function analyzeProfile(username: string): Promise<AIAnalysis> {
   const ai = getAIClient();
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-1.5-flash',
       contents: `Analyze the GitHub profile of user "${username}". Provide a deep technical audit of their coding style, consistency, stack specialization, and seniority level based on public repo evidence.`,
       config: {
         responseMimeType: "application/json",
@@ -81,13 +81,13 @@ export async function analyzeProfile(username: string): Promise<AIAnalysis> {
 
 export async function compareProfiles(user1: string, user2: string, jd?: string): Promise<ComparisonAnalysis> {
   const ai = getAIClient();
-  const prompt = jd 
+  const prompt = jd
     ? `Compare GitHub users "${user1}" and "${user2}" specifically for the following job description: "${jd}". Determine who is the better fit.`
     : `Compare GitHub users "${user1}" and "${user2}". Who is the more senior/versatile engineer?`;
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-1.5-flash',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -108,7 +108,7 @@ export async function chatAboutProfile(username: string, question: string, conte
   const ai = getAIClient();
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-1.5-flash',
       contents: `The user is asking about GitHub profile @${username}. 
       Context: ${context}
       Question: ${question}

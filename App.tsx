@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Github, Terminal, Loader2, Sparkles, Swords, Users, Crown, Shield, ClipboardList, X, Target, Folders, Cpu, Database, Binary, ShieldCheck, Activity, Fingerprint, Layers, Star, GitFork, ChevronRight, FileDown, Linkedin, Twitter, Link, Network, Sun, Moon, Zap, Search, Code, Cpu as Core } from 'lucide-react';
 import { analyzeProfile, compareProfiles } from './services/geminiService';
+import { supabase } from './services/supabase';
 import { AppStatus, AIAnalysis, GitHubProfile, Repository, ComparisonAnalysis, UserSubscription, PipelineFolder, SavedCandidate } from './types';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
 import { ChatWidget } from './components/ChatWidget';
@@ -42,14 +43,8 @@ function App() {
     }
   });
 
-  const [folders, setFolders] = useState<PipelineFolder[]>(() => {
-    try {
-      const saved = localStorage.getItem('devlens_pipeline');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [folders, setFolders] = useState<PipelineFolder[]>([]);
+  const [isFoldersLoading, setIsFoldersLoading] = useState(true);
 
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [isPipelineManagerOpen, setIsPipelineManagerOpen] = useState(false);
@@ -59,8 +54,17 @@ function App() {
   }, [sub]);
 
   useEffect(() => {
-    localStorage.setItem('devlens_pipeline', JSON.stringify(folders));
-  }, [folders]);
+    const fetchFolders = async () => {
+      if (!supabase) {
+        setIsFoldersLoading(false);
+        return;
+      }
+      const { data, error } = await supabase.from('folders').select('*');
+      if (!error && data) setFolders(data);
+      setIsFoldersLoading(false);
+    };
+    fetchFolders();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('devlens_theme', theme);
@@ -147,37 +151,51 @@ function App() {
     }
   };
 
-  const handleCreateFolder = (name: string) => {
+  const handleCreateFolder = async (name: string) => {
     const newFolder: PipelineFolder = {
       id: Date.now().toString(),
       name,
       color: '#' + Math.floor(Math.random()*16777215).toString(16),
       candidates: []
     };
+
+    if (supabase) {
+      const { data: { user } } = await supabase.auth.getUser();
+      const folderToInsert = user ? { ...newFolder, user_id: user.id } : newFolder;
+      const { error } = await supabase.from('folders').insert([folderToInsert]);
+      if (error) console.error('Erro ao criar pasta:', error);
+    }
     setFolders([...folders, newFolder]);
   };
 
-  const handleDeleteFolder = (id: string) => {
+  const handleDeleteFolder = async (id: string) => {
+    if (supabase) {
+      const { error } = await supabase.from('folders').delete().eq('id', id);
+      if (error) console.error('Erro ao deletar pasta:', error);
+    }
     setFolders(folders.filter((f: PipelineFolder) => f.id !== id));
   };
 
-  const handleAddToPipeline = (folderId: string, candidate: SavedCandidate) => {
-    setFolders(folders.map((f: PipelineFolder) => {
-      if (f.id === folderId) {
-        if (f.candidates.some((c: SavedCandidate) => c.username === candidate.username)) return f;
-        return { ...f, candidates: [...f.candidates, candidate] };
-      }
-      return f;
-    }));
+  const handleAddToPipeline = async (folderId: string, candidate: SavedCandidate) => {
+    const folder = folders.find(f => f.id === folderId);
+    if (!folder || folder.candidates.some(c => c.username === candidate.username)) return;
+
+    const updatedCandidates = [...folder.candidates, candidate];
+    if (supabase) {
+      await supabase.from('folders').update({ candidates: updatedCandidates }).eq('id', folderId);
+    }
+    setFolders(folders.map(f => f.id === folderId ? { ...f, candidates: updatedCandidates } : f));
   };
 
-  const handleRemoveCandidate = (folderId: string, username: string) => {
-    setFolders(folders.map((f: PipelineFolder) => {
-      if (f.id === folderId) {
-        return { ...f, candidates: f.candidates.filter((c: SavedCandidate) => c.username !== username) };
-      }
-      return f;
-    }));
+  const handleRemoveCandidate = async (folderId: string, username: string) => {
+    const folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
+
+    const updatedCandidates = folder.candidates.filter(c => c.username !== username);
+    if (supabase) {
+      await supabase.from('folders').update({ candidates: updatedCandidates }).eq('id', folderId);
+    }
+    setFolders(folders.map(f => f.id === folderId ? { ...f, candidates: updatedCandidates } : f));
   };
 
   const renderLoadingScreen = () => {
@@ -209,7 +227,11 @@ function App() {
                 <div className="flex items-center gap-2">
                   <Folders size={14} className="text-blue-500" />
                   <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                    {folders.reduce((acc: number, f: PipelineFolder) => acc + f.candidates.length, 0)} Salvos
+                    {isFoldersLoading ? (
+                      <Loader2 size={12} className="animate-spin text-slate-500" />
+                    ) : (
+                      `${folders.reduce((acc, f) => acc + f.candidates.length, 0)} Salvos`
+                    )}
                   </span>
                 </div>
               </button>
