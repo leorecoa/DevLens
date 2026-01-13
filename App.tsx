@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Github, Terminal, Loader2, Sparkles, Swords, Users, Crown, Shield, ClipboardList, X, Target, Folders, Cpu, Database, Binary, ShieldCheck, Activity, Fingerprint, Layers, Star, GitFork, ChevronRight, FileDown, Linkedin, Twitter, Link, Network, Sun, Moon, Zap, Search, Code, Cpu as Core } from 'lucide-react';
 import { analyzeProfile, compareProfiles } from './services/geminiService';
-import { supabase } from './services/supabase';
 import { AppStatus, AIAnalysis, GitHubProfile, Repository, ComparisonAnalysis, UserSubscription, PipelineFolder, SavedCandidate } from './types';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
 import { ChatWidget } from './components/ChatWidget';
@@ -39,8 +38,10 @@ function App() {
     return saved ? JSON.parse(saved) : { tier: 'FREE', creditsRemaining: FREE_LIMIT, totalAnalyses: 0 };
   });
 
-  const [folders, setFolders] = useState<PipelineFolder[]>([]);
-  const [isFoldersLoading, setIsFoldersLoading] = useState(true);
+  const [folders, setFolders] = useState<PipelineFolder[]>(() => {
+    const saved = localStorage.getItem('devlens_pipeline');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [isPipelineManagerOpen, setIsPipelineManagerOpen] = useState(false);
@@ -50,17 +51,8 @@ function App() {
   }, [sub]);
 
   useEffect(() => {
-    const fetchFolders = async () => {
-      if (!supabase) {
-        setIsFoldersLoading(false);
-        return;
-      }
-      const { data, error } = await supabase.from('folders').select('*');
-      if (!error && data) setFolders(data);
-      setIsFoldersLoading(false);
-    };
-    fetchFolders();
-  }, []);
+    localStorage.setItem('devlens_pipeline', JSON.stringify(folders));
+  }, [folders]);
 
   useEffect(() => {
     localStorage.setItem('devlens_theme', theme);
@@ -131,7 +123,7 @@ function App() {
       }
       
       setLoadingStage(2);
-      setLoadingMessage('Finalizando Dossiê');
+      setLoadingMessage('Final Synthesis');
       setLoadingSubMessage('Empacotando inteligência criptografada...');
       
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -150,51 +142,37 @@ function App() {
     }
   };
 
-  const handleCreateFolder = async (name: string) => {
+  const handleCreateFolder = (name: string) => {
     const newFolder: PipelineFolder = {
       id: Date.now().toString(),
       name,
       color: '#' + Math.floor(Math.random()*16777215).toString(16),
       candidates: []
     };
-
-    if (supabase) {
-      const { data: { user } } = await supabase.auth.getUser();
-      const folderToInsert = user ? { ...newFolder, user_id: user.id } : newFolder;
-      const { error } = await supabase.from('folders').insert([folderToInsert]);
-      if (error) console.error('Erro ao criar pasta:', error);
-    }
     setFolders([...folders, newFolder]);
   };
 
-  const handleDeleteFolder = async (id: string) => {
-    if (supabase) {
-      const { error } = await supabase.from('folders').delete().eq('id', id);
-      if (error) console.error('Erro ao deletar pasta:', error);
-    }
+  const handleDeleteFolder = (id: string) => {
     setFolders(folders.filter((f: PipelineFolder) => f.id !== id));
   };
 
-  const handleAddToPipeline = async (folderId: string, candidate: SavedCandidate) => {
-    const folder = folders.find(f => f.id === folderId);
-    if (!folder || folder.candidates.some(c => c.username === candidate.username)) return;
-
-    const updatedCandidates = [...folder.candidates, candidate];
-    if (supabase) {
-      await supabase.from('folders').update({ candidates: updatedCandidates }).eq('id', folderId);
-    }
-    setFolders(folders.map(f => f.id === folderId ? { ...f, candidates: updatedCandidates } : f));
+  const handleAddToPipeline = (folderId: string, candidate: SavedCandidate) => {
+    setFolders(folders.map((f: PipelineFolder) => {
+      if (f.id === folderId) {
+        if (f.candidates.some((c: SavedCandidate) => c.username === candidate.username)) return f;
+        return { ...f, candidates: [...f.candidates, candidate] };
+      }
+      return f;
+    }));
   };
 
-  const handleRemoveCandidate = async (folderId: string, username: string) => {
-    const folder = folders.find(f => f.id === folderId);
-    if (!folder) return;
-
-    const updatedCandidates = folder.candidates.filter(c => c.username !== username);
-    if (supabase) {
-      await supabase.from('folders').update({ candidates: updatedCandidates }).eq('id', folderId);
-    }
-    setFolders(folders.map(f => f.id === folderId ? { ...f, candidates: updatedCandidates } : f));
+  const handleRemoveCandidate = (folderId: string, username: string) => {
+    setFolders(folders.map((f: PipelineFolder) => {
+      if (f.id === folderId) {
+        return { ...f, candidates: f.candidates.filter((c: SavedCandidate) => c.username !== username) };
+      }
+      return f;
+    }));
   };
 
   const renderLoadingScreen = () => {
@@ -226,11 +204,7 @@ function App() {
                 <div className="flex items-center gap-2">
                   <Folders size={14} className="text-blue-500" />
                   <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                    {isFoldersLoading ? (
-                      <Loader2 size={12} className="animate-spin text-slate-500" />
-                    ) : (
-                      `${folders.reduce((acc, f) => acc + f.candidates.length, 0)} Salvos`
-                    )}
+                    {folders.reduce((acc: number, f: PipelineFolder) => acc + f.candidates.length, 0)} Salvos
                   </span>
                 </div>
               </button>
@@ -362,7 +336,7 @@ function App() {
               analysis && profile1 && (
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
                   <div className="xl:col-span-8 space-y-8">
-                    <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-8 rounded-[2.5rem] relative overflow-hidden group shadow-sm">
+                    <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-8 rounded-[2.5rem] relative overflow-hidden group shadow-sm transition-colors">
                       <div className="absolute top-0 right-0 p-8 no-print">
                          <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${sub.tier === 'PRO' ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'}`}>
                             {sub.tier === 'PRO' ? <Crown size={12} fill="currentColor" /> : <Shield size={12} />}
@@ -497,19 +471,19 @@ function App() {
         />
       )}
 
-      <footer className="py-12 border-t border-slate-200 dark:border-slate-800 text-center text-slate-400 dark:text-slate-700 text-[10px] font-black uppercase tracking-[0.6em] bg-white/30 dark:bg-slate-900/30 no-print">
+      <footer className="py-12 border-t border-slate-200 dark:border-slate-800 text-center text-slate-400 dark:text-slate-700 text-[10px] font-black uppercase tracking-[0.6em] bg-white/30 dark:bg-slate-900/30 no-print transition-colors">
         DevLens // Advanced Neural Sourcing Unit // Gemini 3 Logic Engine Active
       </footer>
     </div>
   );
 }
 
-// Optimized Granular Loading Screen Component
+// Optimized Granular Loading Screen Component with distinct animations for each stage
 const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage: number, message: string, subMessage: string, isBattle: boolean }) => {
   const [logMessages, setLogMessages] = useState<string[]>([]);
   const [dots, setDots] = useState('');
 
-  // Enhanced Logs for better granularity
+  // Enhanced Logs for technical immersive feedback
   const extractionLogs = [
     "Establishing handshake with GitHub REST v4...",
     "Retrieving primary profile metadata...",
@@ -595,7 +569,7 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
         <div className={`absolute inset-0 rounded-full border border-slate-200 dark:border-slate-800 animate-pulse-ring scale-150 opacity-10`}></div>
         <div className="absolute inset-0 rounded-full border-2 border-slate-100 dark:border-slate-700 animate-spin opacity-20" style={{ animationDuration: '10s' }}></div>
         
-        <div className="relative z-10 w-64 h-64 rounded-full bg-white dark:bg-[#0d1424] border-4 border-slate-200 dark:border-slate-800 shadow-[0_0_100px_rgba(37,99,235,0.1)] flex items-center justify-center overflow-hidden">
+        <div className="relative z-10 w-64 h-64 rounded-full bg-white dark:bg-[#0d1424] border-4 border-slate-200 dark:border-slate-800 shadow-[0_0_100px_rgba(37,99,235,0.1)] flex items-center justify-center overflow-hidden transition-colors duration-500">
           <div className="absolute inset-0 opacity-5 pointer-events-none">
             <div className="absolute inset-0 bg-grid-slate-700/[0.1] [mask-image:radial-gradient(white,transparent)]"></div>
           </div>
@@ -617,10 +591,10 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
         </div>
         
         {/* Floating Sector Indicators */}
-        <div className="absolute -top-6 -right-6 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
+        <div className="absolute -top-6 -right-6 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md transition-colors duration-500">
            <Zap className="text-yellow-500 animate-bounce" size={24} />
         </div>
-        <div className="absolute -bottom-6 -left-6 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
+        <div className="absolute -bottom-6 -left-6 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md transition-colors duration-500">
            <Binary className="text-blue-500 animate-pulse" size={24} />
         </div>
       </div>
@@ -649,7 +623,7 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
             <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{Math.round(progressPercent)}% Link Synced</span>
           </div>
           
-          <div className="h-3 w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full overflow-hidden p-0.5 shadow-inner transition-colors">
+          <div className="h-3 w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full overflow-hidden p-0.5 shadow-inner transition-colors duration-500">
              <div 
                className={`h-full bg-gradient-to-r ${stage === 1 && isBattle ? 'from-red-600 to-red-400' : stage === 1 ? 'from-purple-600 to-purple-400' : 'from-blue-600 to-emerald-400'} rounded-full transition-all duration-1000 ease-in-out relative`}
                style={{ width: `${progressPercent}%` }}
@@ -660,7 +634,7 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
         </div>
 
         {/* Tactical Log Console */}
-        <div className="bg-white/50 dark:bg-[#080c14]/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-left backdrop-blur-xl relative overflow-hidden group max-w-2xl mx-auto shadow-sm">
+        <div className="bg-white/50 dark:bg-[#080c14]/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-left backdrop-blur-xl relative overflow-hidden group max-w-2xl mx-auto shadow-sm transition-colors duration-500">
           <div className={`absolute top-0 left-0 w-1 h-full ${currentStage.color} opacity-50`}></div>
           <div className="flex gap-6 items-start">
             <div className={`p-4 rounded-xl ${currentStage.accent} ${currentStage.color} shrink-0`}>

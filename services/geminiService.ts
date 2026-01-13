@@ -50,13 +50,9 @@ const COMPARISON_SCHEMA = {
 };
 
 export async function analyzeProfile(username: string): Promise<AIAnalysis> {
-  const apiKey = (import.meta as any).env.VITE_GOOGLE_API_KEY;
-  if (!apiKey) {
-    throw new Error("Chave da API (VITE_GOOGLE_API_KEY) não encontrada. Verifique o arquivo .env.");
-  }
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-3-pro-preview',
     contents: `Analyze the GitHub profile of user "${username}". Provide a deep technical audit of their coding style, consistency, stack specialization, and seniority level based on public repo evidence.`,
     config: {
       responseMimeType: "application/json",
@@ -68,17 +64,13 @@ export async function analyzeProfile(username: string): Promise<AIAnalysis> {
 }
 
 export async function compareProfiles(user1: string, user2: string, jd?: string): Promise<ComparisonAnalysis> {
-  const apiKey = (import.meta as any).env.VITE_GOOGLE_API_KEY;
-  if (!apiKey) {
-    throw new Error("Chave da API (VITE_GOOGLE_API_KEY) não encontrada. Verifique o arquivo .env.");
-  }
-  const ai = new GoogleGenAI({ apiKey });
-  const prompt = jd
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const prompt = jd 
     ? `Compare GitHub users "${user1}" and "${user2}" specifically for the following job description: "${jd}". Determine who is the better fit.`
     : `Compare GitHub users "${user1}" and "${user2}". Who is the more senior/versatile engineer?`;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-3-pro-preview',
     contents: prompt,
     config: {
       responseMimeType: "application/json",
@@ -90,10 +82,9 @@ export async function compareProfiles(user1: string, user2: string, jd?: string)
 }
 
 export async function chatAboutProfile(username: string, question: string, context: string): Promise<string> {
-  const apiKey = (import.meta as any).env.VITE_GOOGLE_API_KEY;
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-3-flash-preview',
     contents: `The user is asking about GitHub profile @${username}. 
     Context: ${context}
     Question: ${question}
