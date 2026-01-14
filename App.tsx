@@ -62,10 +62,6 @@ function App() {
   }, [sub, isInitialized]);
 
   useEffect(() => {
-    if (isInitialized) syncFolders(folders);
-  }, [folders, isInitialized]);
-
-  useEffect(() => {
     localStorage.setItem('devlens_theme', theme);
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
@@ -148,23 +144,41 @@ function App() {
     }
   };
 
-  const handleAddToPipeline = (folderId: string, candidate: SavedCandidate) => {
-    setFolders(prev => prev.map(f => 
+  const handleAddToPipeline = async (folderId: string, candidate: SavedCandidate) => {
+    const newFolders = folders.map(f => 
       f.id === folderId 
         ? { ...f, candidates: [...f.candidates.filter(c => c.username !== candidate.username), candidate] } 
         : f
-    ));
+    );
+    setFolders(newFolders);
+    await syncFolders(newFolders);
   };
 
-  const handleCreateFolder = (name: string) => {
+  const handleCreateFolder = async (name: string) => {
     const newFolder: PipelineFolder = {
       id: Math.random().toString(36).substring(2, 9),
       name,
       color: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][folders.length % 5],
       candidates: []
     };
-    setFolders(prev => [...prev, newFolder]);
+    const newFolders = [...folders, newFolder];
+    setFolders(newFolders);
+    await syncFolders(newFolders);
   };
+
+  const handleDeleteFolder = async (id: string) => {
+    const newFolders = folders.filter(f => f.id !== id);
+    setFolders(newFolders);
+    await syncFolders(newFolders);
+  };
+
+  const handleRemoveCandidate = async (folderId: string, username: string) => {
+    const newFolders = folders.map(f => 
+      f.id === folderId ? { ...f, candidates: f.candidates.filter(c => c.username !== username) } : f
+    );
+    setFolders(newFolders);
+    await syncFolders(newFolders);
+  }
 
   return (
     <div className={`min-h-screen selection:bg-blue-500/30 overflow-x-hidden flex flex-col grid-pattern transition-colors duration-500 ${theme === 'dark' ? 'bg-[#080b14] text-white' : 'bg-slate-50 text-slate-900'}`}>
@@ -463,8 +477,8 @@ function App() {
         <PipelineManager 
           folders={folders} 
           onClose={() => setIsPipelineManagerOpen(false)} 
-          onDeleteFolder={(id) => setFolders(folders.filter(f => f.id !== id))}
-          onRemoveCandidate={(fId, user) => setFolders(folders.map(f => f.id === fId ? {...f, candidates: f.candidates.filter(c => c.username !== user)} : f))}
+          onDeleteFolder={handleDeleteFolder}
+          onRemoveCandidate={handleRemoveCandidate}
         />
       )}
     </div>

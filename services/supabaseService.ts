@@ -68,20 +68,20 @@ export const syncFolders = async (folders: PipelineFolder[]) => {
   }
 };
 
-export const fetchFolders = async (): Promise<PipelineFolder[] | null> => {
-  if (!supabase) return null;
+export const fetchFolders = async (): Promise<PipelineFolder[]> => {
+  if (!supabase) return [];
 
   const userId = getUserId();
   const { data, error } = await supabase
     .from('user_pipelines')
     .select('folders_json')
     .eq('user_id', userId)
-    .maybeSingle(); // Evita o erro PGRST116 (No rows found)
+    .maybeSingle();
 
   if (error) {
     console.error('Supabase Fetch Error (Folders):', error.message);
-    return null;
+    return [];
   }
 
-  return data ? data.folders_json : null;
+  return data?.folders_json || [];
 };
