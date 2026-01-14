@@ -63,7 +63,7 @@ function App() {
   }, [sub, isInitialized]);
 
   useEffect(() => {
-    if (isInitialized) syncFolders(folders);
+    if (isInitialized) syncFolders(folders, sub);
   }, [folders, isInitialized]);
 
   useEffect(() => {

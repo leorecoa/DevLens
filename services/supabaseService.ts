@@ -19,7 +19,7 @@ const getUserId = () => {
 export const syncUserProfile = async (sub: UserSubscription) => {
   const userId = getUserId();
   const { error } = await supabase
-    .from('user_profiles')
+    .from('users')
     .upsert({ 
       id: userId, 
       tier: sub.tier, 
@@ -29,16 +29,17 @@ export const syncUserProfile = async (sub: UserSubscription) => {
   
   if (error) {
     console.error('Supabase Sync Error (Profile):', error.message, error.details);
+    throw error;
   }
 };
 
 export const fetchUserProfile = async (): Promise<UserSubscription | null> => {
   const userId = getUserId();
   const { data, error } = await supabase
-    .from('user_profiles')
+    .from('users')
     .select('*')
     .eq('id', userId)
-    .maybeSingle(); // Usar maybeSingle para não gerar erro caso o usuário seja novo
+    .maybeSingle();
   
   if (error) {
     console.error('Supabase Fetch Error (Profile):', error.message);
@@ -54,8 +55,18 @@ export const fetchUserProfile = async (): Promise<UserSubscription | null> => {
   };
 };
 
-export const syncFolders = async (folders: PipelineFolder[]) => {
+export const syncFolders = async (folders: PipelineFolder[], sub: UserSubscription) => {
   const userId = getUserId();
+  
+  // To avoid foreign key constraint violations, we must ensure the parent user record exists
+  // before attempting to sync the folders.
+  try {
+    await syncUserProfile(sub);
+  } catch (err) {
+    console.error('Aborting folder sync because user record could not be verified.');
+    return;
+  }
+
   const { error } = await supabase
     .from('user_pipelines')
     .upsert({ 
@@ -74,7 +85,7 @@ export const fetchFolders = async (): Promise<PipelineFolder[] | null> => {
     .from('user_pipelines')
     .select('folders_json')
     .eq('user_id', userId)
-    .maybeSingle(); // Evita o erro PGRST116 (No rows found)
+    .maybeSingle();
   
   if (error) {
     console.error('Supabase Fetch Error (Folders):', error.message);
