@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Github, Terminal, Loader2, Sparkles, Swords, Users, Crown, Shield, ClipboardList, X, Target, Folders, Cpu, Database, Binary, ShieldCheck, Activity, Fingerprint, Layers, Star, GitFork, ChevronRight, FileDown, Linkedin, Twitter, Link, Network, Sun, Moon, Zap, Search, Code, Cpu as Core, Boxes, ZapOff } from 'lucide-react';
 import { analyzeProfile, compareProfiles } from './services/geminiService';
@@ -56,7 +55,7 @@ function App() {
         if (remoteSub) setSub(remoteSub);
         if (remoteFolders) setFolders(remoteFolders);
       } catch (err) {
-        console.warn("Could not hydrate data from Supabase, using defaults.");
+        console.warn("Could not hydrate data from Supabase, using local defaults.");
       } finally {
         setIsInitialized(true);
       }
@@ -64,7 +63,7 @@ function App() {
     initData();
   }, []);
 
-  // Persistência reativa no Supabase e LocalStorage (apenas APÓS inicialização)
+  // Persistência reativa no Supabase (apenas APÓS inicialização para não sobrescrever o que vem do banco)
   useEffect(() => {
     if (isInitialized) {
       syncUserProfile(sub);
@@ -97,7 +96,6 @@ function App() {
 
   const handleAnalyze = async () => {
     if (!username1.trim()) return;
-    if (isCompareMode && !username2.trim()) return;
 
     setStatus(AppStatus.LOADING);
     setError(null);
@@ -109,41 +107,23 @@ function App() {
       setLoadingMessage('Fetching GitHub Data');
       setLoadingSubMessage('Mapeando identidades via nós do GitHub...');
       
-      if (isCompareMode) {
-        const [d1, d2] = await Promise.all([
-          fetchGitHubData(username1),
-          fetchGitHubData(username2)
-        ]);
-        
-        setProfile1(d1.p);
-        setRepos1(d1.r);
-        setProfile2(d2.p);
-        setRepos2(d2.r);
-        
-        setLoadingStage(1);
-        setLoadingMessage('Comparison Simulation');
-        setLoadingSubMessage('Redes neurais calculando superioridade estratégica...');
-        const compResult = await compareProfiles(username1, username2, jdInput);
-        setComparison(compResult);
-      } else {
-        const d1 = await fetchGitHubData(username1);
-        setProfile1(d1.p);
-        setRepos1(d1.r);
-        
-        setLoadingStage(1);
-        setLoadingMessage('AI Analysis');
-        setLoadingSubMessage('Gemini 3 sondando matriz de habilidades e senioridade...');
-        const aiResult = await analyzeProfile(username1);
-        setAnalysis(aiResult);
-      }
+      const d1 = await fetchGitHubData(username1);
+      setProfile1(d1.p);
+      setRepos1(d1.r);
+      
+      setLoadingStage(1);
+      setLoadingMessage('AI Analysis');
+      setLoadingSubMessage('Gemini 3 sondando matriz de habilidades e senioridade...');
+      const aiResult = await analyzeProfile(username1);
+      setAnalysis(aiResult);
       
       setLoadingStage(2);
       setLoadingMessage('Final Synthesis');
       setLoadingSubMessage('Empacotando inteligência criptografada...');
       
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      setSub((prev: UserSubscription) => ({
+      setSub((prev) => ({
         ...prev,
         creditsRemaining: prev.tier === 'PRO' ? prev.creditsRemaining : Math.max(0, prev.creditsRemaining - 1),
         totalAnalyses: prev.totalAnalyses + 1
@@ -152,7 +132,56 @@ function App() {
       setStatus(AppStatus.SUCCESS);
     } catch (e: any) {
       console.error('Análise falhou:', e);
-      setError(e.message || 'Falha crítica na sonda neural. Verifique sua conexão.');
+      setError(e.message || 'Falha crítica na sonda neural.');
+      setStatus(AppStatus.ERROR);
+    }
+  };
+
+  const handleCompare = async () => {
+    if (!username1.trim() || !username2.trim()) return;
+
+    setStatus(AppStatus.LOADING);
+    setError(null);
+    setComparison(null);
+    setAnalysis(null);
+    
+    try {
+      setLoadingStage(0);
+      setLoadingMessage('Gathering Intelligence');
+      setLoadingSubMessage('Sincronizando dados dos dois candidatos...');
+      
+      const [d1, d2] = await Promise.all([
+        fetchGitHubData(username1),
+        fetchGitHubData(username2)
+      ]);
+      
+      setProfile1(d1.p);
+      setRepos1(d1.r);
+      setProfile2(d2.p);
+      setRepos2(d2.r);
+      
+      setLoadingStage(1);
+      setLoadingMessage('Comparison Simulation');
+      setLoadingSubMessage('Redes neurais calculando superioridade estratégica...');
+      const compResult = await compareProfiles(username1, username2, jdInput);
+      setComparison(compResult);
+      
+      setLoadingStage(2);
+      setLoadingMessage('Final Synthesis');
+      setLoadingSubMessage('Gerando relatório tático de combate...');
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      setSub((prev) => ({
+        ...prev,
+        creditsRemaining: prev.tier === 'PRO' ? prev.creditsRemaining : Math.max(0, prev.creditsRemaining - 1),
+        totalAnalyses: prev.totalAnalyses + 1
+      }));
+      
+      setStatus(AppStatus.SUCCESS);
+    } catch (e: any) {
+      console.error('Comparação falhou:', e);
+      setError(e.message || 'Erro ao comparar perfis.');
       setStatus(AppStatus.ERROR);
     }
   };
@@ -168,13 +197,13 @@ function App() {
   };
 
   const handleDeleteFolder = (id: string) => {
-    setFolders(folders.filter((f: PipelineFolder) => f.id !== id));
+    setFolders(folders.filter(f => f.id !== id));
   };
 
   const handleAddToPipeline = (folderId: string, candidate: SavedCandidate) => {
-    setFolders(folders.map((f: PipelineFolder) => {
+    setFolders(folders.map(f => {
       if (f.id === folderId) {
-        if (f.candidates.some((c: SavedCandidate) => c.username === candidate.username)) return f;
+        if (f.candidates.some(c => c.username === candidate.username)) return f;
         return { ...f, candidates: [...f.candidates, candidate] };
       }
       return f;
@@ -182,16 +211,12 @@ function App() {
   };
 
   const handleRemoveCandidate = (folderId: string, username: string) => {
-    setFolders(folders.map((f: PipelineFolder) => {
+    setFolders(folders.map(f => {
       if (f.id === folderId) {
-        return { ...f, candidates: f.candidates.filter((c: SavedCandidate) => c.username !== username) };
+        return { ...f, candidates: f.candidates.filter(c => c.username !== username) };
       }
       return f;
     }));
-  };
-
-  const renderLoadingScreen = () => {
-    return <GranularLoadingScreen stage={loadingStage} message={loadingMessage} subMessage={loadingSubMessage} isBattle={isCompareMode} />;
   };
 
   return (
@@ -209,51 +234,49 @@ function App() {
                 <p className="text-[10px] text-blue-500 dark:text-blue-400 font-black uppercase tracking-[0.2em]">Neural Intelligence Engine</p>
               </div>
             </div>
-
-            <div className="hidden lg:flex items-center gap-6 pl-6 border-l border-slate-200 dark:border-slate-800">
-              <button 
-                onClick={() => setIsPipelineManagerOpen(true)}
-                className="flex flex-col items-start group"
-              >
-                <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest group-hover:text-blue-500 transition-colors">Talent Pipeline</span>
-                <div className="flex items-center gap-2">
-                  <Folders size={14} className="text-blue-500" />
-                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                    {folders.reduce((acc: number, f: PipelineFolder) => acc + f.candidates.length, 0)} Salvos
-                  </span>
-                </div>
-              </button>
-            </div>
+            
+            <button 
+              onClick={() => setIsPipelineManagerOpen(true)}
+              className="hidden lg:flex flex-col items-start group pl-6 border-l border-slate-200 dark:border-slate-800"
+            >
+              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest group-hover:text-blue-500 transition-colors">Talent Pipeline</span>
+              <div className="flex items-center gap-2">
+                <Folders size={14} className="text-blue-500" />
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                  {folders.reduce((acc, f) => acc + f.candidates.length, 0)} Ativos
+                </span>
+              </div>
+            </button>
           </div>
 
           <div className="flex flex-col md:flex-row items-center gap-3 w-full max-w-2xl">
             <div className="flex items-center gap-2 w-full">
               <div className="relative flex-1">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                   <Github size={16} />
                 </div>
                 <input 
                   type="text"
                   value={username1}
                   onChange={(e) => setUsername1(e.target.value)}
-                  placeholder="Perfil Principal"
-                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                  placeholder="Username Principal"
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
                 />
               </div>
               
               {isCompareMode && (
                 <>
-                  <Swords className="text-slate-400 dark:text-slate-600 shrink-0 animate-pulse" size={16} />
+                  <Swords className="text-slate-400 dark:text-slate-600 shrink-0" size={16} />
                   <div className="relative flex-1 animate-in slide-in-from-right duration-300">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                       <Github size={16} />
                     </div>
                     <input 
                       type="text"
                       value={username2}
                       onChange={(e) => setUsername2(e.target.value)}
-                      placeholder="Perfil Oponente"
-                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
+                      placeholder="Oponente"
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
                     />
                   </div>
                 </>
@@ -263,23 +286,23 @@ function App() {
             <div className="flex gap-2 w-full md:w-auto">
               <button 
                 onClick={toggleTheme}
-                className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all shadow-sm"
+                className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500"
               >
-                {theme === 'dark' ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} className="text-violet-600" />}
+                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
               <button 
                 onClick={() => setIsCompareMode(!isCompareMode)}
-                className={`p-2.5 rounded-xl border transition-all shadow-sm ${isCompareMode ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                className={`p-2 rounded-xl border transition-all ${isCompareMode ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-500'}`}
               >
                 <Users size={18} />
               </button>
               <button 
-                onClick={handleAnalyze} 
+                onClick={isCompareMode ? handleCompare : handleAnalyze} 
                 disabled={status === AppStatus.LOADING}
-                className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-500 text-white font-black px-6 py-2.5 rounded-xl transition-all shadow-lg shadow-blue-900/40 disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
+                className="bg-blue-600 hover:bg-blue-500 text-white font-black px-4 py-2 rounded-xl transition-all shadow-lg shadow-blue-900/40 disabled:opacity-50 flex items-center gap-2 uppercase tracking-widest text-[10px]"
               >
-                {status === AppStatus.LOADING ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
-                {isCompareMode ? 'Batalha' : 'Inspecionar'}
+                {status === AppStatus.LOADING ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />}
+                {isCompareMode ? 'Battle' : 'Inspect'}
               </button>
             </div>
           </div>
@@ -287,35 +310,37 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full relative">
-        {status === AppStatus.LOADING && renderLoadingScreen()}
+      <main className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full">
+        {status === AppStatus.LOADING && (
+          <GranularLoadingScreen stage={loadingStage} message={loadingMessage} subMessage={loadingSubMessage} isBattle={isCompareMode} />
+        )}
 
         {status === AppStatus.ERROR && (
-          <div className="flex flex-col items-center justify-center h-[60vh] text-center animate-in zoom-in duration-300">
+          <div className="flex flex-col items-center justify-center h-[60vh] text-center">
             <Fingerprint className="text-red-500 mb-6" size={64} />
-            <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">Erro no Sistema</h2>
-            <p className="text-slate-600 dark:text-slate-400 max-w-md text-sm mb-8 italic">{error}</p>
-            <button onClick={handleAnalyze} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-10 py-4 rounded-2xl text-slate-900 dark:text-white font-black uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm">Tentar Novamente</button>
+            <h2 className="text-2xl font-black mb-2 uppercase italic">Acesso Negado / Erro</h2>
+            <p className="text-slate-500 mb-8 max-w-md">{error}</p>
+            <button onClick={() => setStatus(AppStatus.IDLE)} className="bg-slate-200 dark:bg-slate-800 px-8 py-3 rounded-xl font-black uppercase text-xs">Voltar</button>
           </div>
         )}
 
         {status === AppStatus.SUCCESS && (
-          <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="space-y-8">
             {isCompareMode && comparison && profile1 && profile2 ? (
               <ComparisonDashboard comparison={comparison} p1={profile1} p2={profile2} r1={repos1} r2={repos2} />
             ) : (
               analysis && profile1 && (
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
                   <div className="xl:col-span-8 space-y-8">
-                    <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-8 rounded-[2.5rem] relative overflow-hidden group shadow-sm transition-colors duration-300">
-                      <div className="flex flex-col md:flex-row gap-8 relative z-10">
-                        <img src={profile1.avatar_url} className="w-36 h-36 rounded-[2.5rem] shadow-2xl border-4 border-white dark:border-slate-700 group-hover:scale-105 transition-transform duration-500" alt="" />
+                    <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 p-8 rounded-[2.5rem] shadow-sm">
+                      <div className="flex flex-col md:flex-row gap-8">
+                        <img src={profile1.avatar_url} className="w-32 h-32 rounded-[2.5rem] shadow-2xl border-4 border-white dark:border-slate-700" alt="" />
                         <div className="flex-1">
-                          <h2 className="text-5xl font-black text-slate-900 dark:text-white mb-2 italic uppercase tracking-tighter leading-none">{profile1.name || profile1.login}</h2>
-                          <p className="text-blue-600 dark:text-blue-400 font-bold mb-4 flex items-center gap-2 text-lg">
-                             <Github size={20} /> @{profile1.login}
+                          <h2 className="text-4xl font-black text-slate-900 dark:text-white mb-2 italic uppercase tracking-tighter">{profile1.name || profile1.login}</h2>
+                          <p className="text-blue-600 dark:text-blue-400 font-bold mb-4 flex items-center gap-2">
+                             <Github size={18} /> @{profile1.login}
                           </p>
-                          <p className="text-slate-600 dark:text-slate-300 text-lg leading-relaxed italic border-l-4 border-blue-500/30 pl-6">{profile1.bio || "Sem bio inteligível encontrada."}</p>
+                          <p className="text-slate-600 dark:text-slate-300 text-sm italic border-l-4 border-blue-500/30 pl-4">{profile1.bio || "No bio intel found."}</p>
                         </div>
                       </div>
                     </div>
@@ -330,7 +355,7 @@ function App() {
                       onCreateFolder={handleCreateFolder}
                     />
                   </div>
-                  <div className="xl:col-span-4 lg:sticky lg:top-28 h-fit lg:max-h-[calc(100vh-10rem)] no-print">
+                  <div className="xl:col-span-4 h-fit sticky top-28">
                     <div className="h-[600px]">
                       <ChatWidget username={profile1.login} />
                     </div>
@@ -342,40 +367,15 @@ function App() {
         )}
 
         {status === AppStatus.IDLE && (
-          <div className="relative min-h-[80vh] flex flex-col items-center justify-center text-center overflow-hidden">
-            <div className="absolute inset-0 z-0 pointer-events-none">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/5 dark:bg-blue-600/5 rounded-full blur-[120px]"></div>
+          <div className="h-[70vh] flex flex-col items-center justify-center text-center">
+            <div className="bg-blue-600/10 p-10 rounded-[4rem] mb-8">
+              <Github className="text-blue-600 dark:text-blue-500" size={100} strokeWidth={1} />
             </div>
-
-            <div className="relative z-10 flex flex-col items-center space-y-12 max-w-5xl px-6">
-              <div className="relative group">
-                <div className="bg-white dark:bg-blue-600/10 p-12 rounded-[5rem] border border-slate-200 dark:border-blue-500/10 shadow-2xl relative transition-colors">
-                  <Github className="text-blue-600 dark:text-blue-500 group-hover:scale-110 transition-all duration-1000" size={120} strokeWidth={1} />
-                  <div className="absolute -bottom-6 -right-6 bg-yellow-500 p-6 rounded-[2.5rem] shadow-2xl border-8 border-slate-50 dark:border-[#0b0f1a]">
-                    <Crown className="text-black" size={48} fill="currentColor" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <p className="text-[10px] font-black text-blue-600 dark:text-blue-500 uppercase tracking-[0.8em]">Protocolo de Recrutamento Neural</p>
-                <h2 className="text-8xl font-black text-slate-900 dark:text-white italic uppercase tracking-tighter leading-[0.8]">
-                  DevLens <br/> <span className="text-blue-600 dark:text-blue-500">Intelligence</span>
-                </h2>
-                <p className="text-slate-600 dark:text-slate-400 text-2xl leading-relaxed italic max-w-3xl mx-auto font-medium">
-                  Sonde perfis do GitHub com Gemini 3. Audite habilidades e compare DNA técnico através de árvores de repositórios públicos.
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-8 pt-4">
-                <button 
-                  onClick={handleAnalyze} 
-                  className="bg-blue-600 hover:bg-blue-500 px-16 py-8 rounded-[2.5rem] font-black text-white shadow-[0_0_40px_rgba(37,99,235,0.4)] uppercase tracking-[0.2em] text-sm transition-all flex items-center justify-center gap-6 group"
-                >
-                  <Sparkles size={32} className="group-hover:rotate-12 transition-transform" />
-                  Sondar Perfil
-                </button>
-              </div>
+            <h2 className="text-6xl font-black text-slate-900 dark:text-white italic uppercase tracking-tighter mb-4">DevLens Intelligence</h2>
+            <p className="text-slate-500 text-xl max-w-2xl italic">Advanced Neural Sourcing Protocol. Audit developer coding DNA through repository forest nodes.</p>
+            <div className="flex gap-4 mt-12">
+               <button onClick={handleAnalyze} className="bg-blue-600 text-white px-10 py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20">Iniciar Sonda</button>
+               <button onClick={() => setIsPricingOpen(true)} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-10 py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs">Upgrade Protocol</button>
             </div>
           </div>
         )}
@@ -390,10 +390,6 @@ function App() {
           onRemoveCandidate={handleRemoveCandidate}
         />
       )}
-
-      <footer className="py-12 border-t border-slate-200 dark:border-slate-800 text-center text-slate-400 dark:text-slate-700 text-[10px] font-black uppercase tracking-[0.6em] bg-white/30 dark:bg-slate-900/30 no-print transition-colors duration-300">
-        DevLens // Logic Engine: Gemini 3 Pro
-      </footer>
     </div>
   );
 }
@@ -402,28 +398,9 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
   const [logMessages, setLogMessages] = useState<string[]>([]);
   const [dots, setDots] = useState('');
 
-  const extractionLogs = [
-    "Establishing handshake with GitHub...",
-    "Retrieving profile metadata...",
-    "Extracting contribution heatmap...",
-    "Querying repo forest nodes..."
-  ];
-
-  const processingLogs = isBattle ? [
-    "Initializing competitive neural link...",
-    "Calculating technical DNA parity...",
-    "Simulating workload scenarios..."
-  ] : [
-    "Booting Gemini 3 Logic Engine...",
-    "Performing AST pattern recognition...",
-    "Auditing commit consistency metrics..."
-  ];
-
-  const finalizationLogs = [
-    "Compressing findings...",
-    "Generating report summary...",
-    "Data handshake complete."
-  ];
+  const extractionLogs = ["Establishing handshake...", "Retrieving metadata...", "Extracting heatmap...", "Querying repo forest..."];
+  const processingLogs = isBattle ? ["Initializing competitive link...", "Calculating DNA parity...", "Simulating workload..."] : ["Booting Logic Engine...", "Performing AST recognition...", "Auditing consistency..."];
+  const finalizationLogs = ["Compressing findings...", "Generating summary...", "Handshake complete."];
 
   useEffect(() => {
     const dotInterval = setInterval(() => setDots(prev => prev.length >= 3 ? '' : prev + '.'), 500);
@@ -432,55 +409,40 @@ const GranularLoadingScreen = ({ stage, message, subMessage, isBattle }: { stage
     const logInterval = setInterval(() => {
       setLogMessages((prev) => [...prev.slice(-3), currentLogs[idx]]);
       idx = (idx + 1) % currentLogs.length;
-    }, 1000);
+    }, 800);
     return () => { clearInterval(dotInterval); clearInterval(logInterval); };
   }, [stage, isBattle]);
 
   const stages = [
     { name: 'Extração', icon: Database, color: 'text-blue-500' },
-    { name: isBattle ? 'Combate' : 'Auditoria', icon: isBattle ? Swords : Core, color: isBattle ? 'text-red-500' : 'text-purple-500' },
+    { name: isBattle ? 'Combate' : 'Auditoria', icon: isBattle ? Swords : ShieldCheck, color: isBattle ? 'text-red-500' : 'text-purple-500' },
     { name: 'Solidificação', icon: ShieldCheck, color: 'text-emerald-500' }
   ];
 
   const currentStage = stages[stage] || stages[0];
-  const progressPercent = ((stage + 1) / 3) * 100;
 
   return (
-    <div className="fixed inset-0 z-[200] bg-slate-50 dark:bg-[#0b0f1a] flex flex-col items-center justify-center p-6 space-y-12 animate-in fade-in duration-700 transition-colors">
-      <div className="relative">
-        <div className={`relative z-10 w-72 h-72 rounded-full bg-white dark:bg-[#0d1424] border-4 border-slate-200 dark:border-slate-800 shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-700`}>
-          <div className="flex flex-col items-center gap-6 relative z-10">
-            <currentStage.icon className={`${currentStage.color} animate-pulse`} size={90} />
-            <div className="flex gap-3">
-              {[0, 1, 2].map(i => (
-                <div key={i} className={`w-2.5 h-2.5 rounded-full transition-all duration-700 ${i === stage ? `${currentStage.color} scale-125` : 'bg-slate-200 dark:bg-slate-800'}`}></div>
-              ))}
-            </div>
-          </div>
-        </div>
+    <div className="fixed inset-0 z-[200] bg-slate-50 dark:bg-[#0b0f1a] flex flex-col items-center justify-center p-6 space-y-12 animate-in fade-in duration-700">
+      <div className="w-64 h-64 rounded-full border-4 border-slate-200 dark:border-slate-800 flex items-center justify-center relative">
+        <currentStage.icon className={`${currentStage.color} animate-pulse`} size={80} />
       </div>
-
-      <div className="text-center w-full space-y-8">
-        <h2 className="text-6xl font-black text-slate-900 dark:text-white italic uppercase tracking-tighter leading-none">{message}</h2>
-        <div className="max-w-3xl mx-auto w-full space-y-4">
-          <div className="h-4 w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full overflow-hidden p-1">
-             <div className={`h-full bg-blue-600 rounded-full transition-all duration-1000 ease-out`} style={{ width: `${progressPercent}%` }}></div>
-          </div>
-          <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.4em]">{subMessage}{dots}</p>
-        </div>
-
-        <div className="bg-white/50 dark:bg-[#080c14]/50 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 text-left max-w-2xl mx-auto shadow-2xl">
-          <div className="space-y-2 h-24 overflow-hidden flex flex-col justify-end">
-            {logMessages.map((log, i) => (
-              <p key={i} className={`text-[11px] font-mono ${i === logMessages.length - 1 ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-400 dark:text-slate-600 opacity-40'}`}>
-                {'>'} {log}
-              </p>
-            ))}
-          </div>
+      <div className="text-center space-y-4">
+        <h2 className="text-4xl font-black italic uppercase">{message}</h2>
+        <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.4em]">{subMessage}{dots}</p>
+        <div className="bg-white/50 dark:bg-black/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-left w-64 h-32 overflow-hidden mx-auto font-mono text-[10px]">
+           {logMessages.map((log, i) => (
+             <p key={i} className={i === logMessages.length - 1 ? 'text-blue-500' : 'opacity-40'}>{'>'} {log}</p>
+           ))}
         </div>
       </div>
     </div>
   );
 };
 
-export default App;
+export default App;import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
+const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;  
+if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('⚠️ Configuração do Supabase ausente ou incompleta. Verifique seu arquivo .env');
+}
