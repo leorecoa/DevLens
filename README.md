@@ -1,4 +1,3 @@
-
 # 🕵️ DevLens | Neural Talent Intelligence Engine
 
 <div align="center">
@@ -17,6 +16,17 @@
 [Explore App](#) • [View Roadmap](#-future-intelligence-roadmap) • [Protocol Access](#-access-protocol)
 
 </div>
+
+---
+
+## 🛠️ Database Setup (Supabase)
+
+To enable cloud persistence and real-time synchronization, you must execute the SQL commands found in `database.sql` within your Supabase SQL Editor.
+
+### Security Hardening
+The provided script includes fixes for common PostgreSQL security warnings:
+*   **Search Path Mutable:** Trigger functions now explicitly set `search_path = public` and use `SECURITY DEFINER` to prevent search path hijacking.
+*   **RLS (Row Level Security):** Policies are enabled to ensure secure anonymous access mapped to local instance IDs.
 
 ---
 
@@ -40,7 +50,7 @@
 ### 4. Talent Pipeline Control
 *   **Sector Management:** Create custom folders (Pipelines) to organize talent.
 *   **Target Acquisition:** Save high-potential candidates to specific sectors for later review.
-*   **Persistence:** LocalStorage integration ensures your scouted data remains accessible between sessions.
+*   **Cloud Persistence:** Supabase integration ensures your scouted data remains accessible across devices.
 
 ---
 
@@ -49,38 +59,19 @@
 | Layer | Technology |
 | :--- | :--- |
 | **Intelligence Engine** | `Gemini 3 Flash Preview` |
+| **Persistence (Cloud)** | `Supabase (PostgreSQL)` |
 | **Frontend Core** | `React 19 (Fiber Architecture)` |
 | **Type Safety** | `TypeScript 5.x` |
 | **Interface Design** | `Tailwind CSS (Dark-Ops Theme)` |
 | **Neural Data Viz** | `Recharts (Radar/Polar)` |
 | **Tactical Icons** | `Lucide React` |
-| **Persistence** | `LocalStorage API` |
-
----
-
-## 🧠 System Architecture
-
-DevLens operates as a "Zero-Backend" intelligence unit:
-1.  **Extraction:** The app pulls real-time JSON data from the GitHub API.
-2.  **Structuring:** Data is cleaned and fed into Gemini 3 with strictly defined `responseSchema` outputs.
-3.  **Visualization:** The structured AI response is mapped to the **Neural Skill Matrix** and **Intelligence Dashboard**.
-4.  **Reasoning:** The `compareProfiles` service uses specialized prompts to simulate a competitive evaluation.
-
----
-
-## 🔮 Future Intelligence Roadmap
-
-*   **Multimodal Dossiers:** Use `gemini-3-pro-image-preview` to analyze candidate portfolio screenshots.
-*   **Repo-Specific Audits:** Deep-cloning specific repositories to analyze complexity and security.
-*   **Google Search Grounding:** Integrate `googleSearch` to verify conference talks and technical blogs.
-*   **Audio Briefings:** Use `gemini-2.5-flash-preview-tts` for 60-second audio summaries.
 
 ---
 
 ## 🛡️ Access Protocol
 
 DevLens operates on a **Tiered Intelligence** model:
-*   **Standard Unit (Free):** 3 profile probes per session.
+*   **Standard Unit (Free):** 10 profile probes per instance.
 *   **Pro Commander:** Unlimited probes, Battle Mode activation, and Priority Neural Reasoning.
 
 ---
