@@ -51,9 +51,9 @@ const COMPARISON_SCHEMA = {
 };
 
 const getAIClient = () => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("API_KEY não configurada no ambiente.");
+    throw new Error("VITE_GEMINI_API_KEY não configurada no ambiente.");
   }
   return new GoogleGenAI({ apiKey });
 };

@@ -2,8 +2,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { PipelineFolder, UserSubscription } from '../types';
 
-const SUPABASE_URL = 'https://ubqmetsmfvzmagwlnzfm.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_7H4TOD_RSu7Osny2chEjDg_n8N7a3Mj';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error("Supabase URL and Anon Key must be provided in .env file");
+}
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
