@@ -25,10 +25,10 @@ export const syncUserProfile = async (sub: UserSubscription) => {
       tier: sub.tier, 
       credits_remaining: sub.creditsRemaining, 
       total_analyses: sub.totalAnalyses 
-    });
+    }, { onConflict: 'id' });
   
   if (error) {
-    console.error('Supabase Sync Error (Profile):', error.message, error.details);
+    console.error('Supabase Sync Error (Profile):', error.message);
     throw error;
   }
 };
@@ -55,27 +55,17 @@ export const fetchUserProfile = async (): Promise<UserSubscription | null> => {
   };
 };
 
-export const syncFolders = async (folders: PipelineFolder[], sub: UserSubscription) => {
+export const syncFolders = async (folders: PipelineFolder[]) => {
   const userId = getUserId();
-  
-  // To avoid foreign key constraint violations, we must ensure the parent user record exists
-  // before attempting to sync the folders.
-  try {
-    await syncUserProfile(sub);
-  } catch (err) {
-    console.error('Aborting folder sync because user record could not be verified.');
-    return;
-  }
-
   const { error } = await supabase
     .from('user_pipelines')
     .upsert({ 
       user_id: userId, 
       folders_json: folders 
-    });
+    }, { onConflict: 'user_id' });
   
   if (error) {
-    console.error('Supabase Sync Error (Folders):', error.message, error.details);
+    console.error('Supabase Sync Error (Folders):', error.message);
   }
 };
 
