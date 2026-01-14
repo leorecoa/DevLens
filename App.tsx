@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Github, Terminal, Loader2, Sparkles, Swords, Users, Target, Folders, Database, ShieldCheck, Fingerprint, Star, GitFork, Sun, Moon, Zap, Shield, Cpu, Activity, ChevronRight, Crown, Search, Wifi, Box, Globe, Lock, ShieldAlert, Laptop } from 'lucide-react';
 import { analyzeProfile, compareProfiles } from './services/geminiService';
@@ -62,6 +63,10 @@ function App() {
   }, [sub, isInitialized]);
 
   useEffect(() => {
+    if (isInitialized) syncFolders(folders);
+  }, [folders, isInitialized]);
+
+  useEffect(() => {
     localStorage.setItem('devlens_theme', theme);
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
@@ -96,7 +101,7 @@ function App() {
       await new Promise(r => setTimeout(r, 1200));
       setLoadingStage(1);
       setLoadingMessage('AI ANALYSIS');
-      setLoadingSubMessage('GEMINI 3 PRO ANALISANDO DNA TÉCNICO...');
+      setLoadingSubMessage('GEMINI 2.0 FLASH ANALISANDO DNA TÉCNICO...');
       const aiResult = await analyzeProfile(username1);
       setAnalysis(aiResult);
       
@@ -131,6 +136,7 @@ function App() {
       await new Promise(r => setTimeout(r, 1000));
       setLoadingStage(1);
       setLoadingMessage('AI ANALYSIS');
+      setLoadingSubMessage('GEMINI 2.0 FLASH COMPARANDO CANDIDATOS...');
       const compResult = await compareProfiles(username1, username2);
       setComparison(compResult);
       
@@ -144,41 +150,23 @@ function App() {
     }
   };
 
-  const handleAddToPipeline = async (folderId: string, candidate: SavedCandidate) => {
-    const newFolders = folders.map(f => 
+  const handleAddToPipeline = (folderId: string, candidate: SavedCandidate) => {
+    setFolders(prev => prev.map(f => 
       f.id === folderId 
         ? { ...f, candidates: [...f.candidates.filter(c => c.username !== candidate.username), candidate] } 
         : f
-    );
-    setFolders(newFolders);
-    await syncFolders(newFolders);
+    ));
   };
 
-  const handleCreateFolder = async (name: string) => {
+  const handleCreateFolder = (name: string) => {
     const newFolder: PipelineFolder = {
       id: Math.random().toString(36).substring(2, 9),
       name,
       color: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][folders.length % 5],
       candidates: []
     };
-    const newFolders = [...folders, newFolder];
-    setFolders(newFolders);
-    await syncFolders(newFolders);
+    setFolders(prev => [...prev, newFolder]);
   };
-
-  const handleDeleteFolder = async (id: string) => {
-    const newFolders = folders.filter(f => f.id !== id);
-    setFolders(newFolders);
-    await syncFolders(newFolders);
-  };
-
-  const handleRemoveCandidate = async (folderId: string, username: string) => {
-    const newFolders = folders.map(f => 
-      f.id === folderId ? { ...f, candidates: f.candidates.filter(c => c.username !== username) } : f
-    );
-    setFolders(newFolders);
-    await syncFolders(newFolders);
-  }
 
   return (
     <div className={`min-h-screen selection:bg-blue-500/30 overflow-x-hidden flex flex-col grid-pattern transition-colors duration-500 ${theme === 'dark' ? 'bg-[#080b14] text-white' : 'bg-slate-50 text-slate-900'}`}>
@@ -456,7 +444,7 @@ function App() {
         <div className="flex-1 flex items-center gap-8">
            <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-[9px] font-mono uppercase tracking-widest">GEMINI_3_PRO: ACTIVE</span>
+              <span className="text-[9px] font-mono uppercase tracking-widest">GEMINI_2.0_FLASH: ACTIVE</span>
            </div>
            <div className="flex items-center gap-2">
               <GitFork size={12} className={theme === 'dark' ? 'text-slate-600' : 'text-slate-300'} />
@@ -477,8 +465,8 @@ function App() {
         <PipelineManager 
           folders={folders} 
           onClose={() => setIsPipelineManagerOpen(false)} 
-          onDeleteFolder={handleDeleteFolder}
-          onRemoveCandidate={handleRemoveCandidate}
+          onDeleteFolder={(id) => setFolders(folders.filter(f => f.id !== id))}
+          onRemoveCandidate={(fId, user) => setFolders(folders.map(f => f.id === fId ? {...f, candidates: f.candidates.filter(c => c.username !== user)} : f))}
         />
       )}
     </div>

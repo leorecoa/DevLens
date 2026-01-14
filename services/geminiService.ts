@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIAnalysis, ComparisonAnalysis } from "../types";
 
@@ -61,7 +62,7 @@ export async function analyzeProfile(username: string): Promise<AIAnalysis> {
   const ai = getAIClient();
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-2.0-flash',
       contents: `Analyze the GitHub profile of user "${username}". Provide a deep technical audit of their coding style, consistency, stack specialization, and seniority level based on public repo evidence.`,
       config: {
         responseMimeType: "application/json",
@@ -86,7 +87,7 @@ export async function compareProfiles(user1: string, user2: string, jd?: string)
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-2.0-flash',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -107,7 +108,7 @@ export async function chatAboutProfile(username: string, question: string, conte
   const ai = getAIClient();
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.0-flash',
       contents: `The user is asking about GitHub profile @${username}. 
       Context: ${context}
       Question: ${question}
