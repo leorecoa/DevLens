@@ -63,7 +63,7 @@ export async function analyzeProfile(username: string): Promise<AIAnalysis> {
   const ai = getAIClient();
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-1.5-flash-latest',
       contents: `Analyze the GitHub profile of user "${username}". Provide a deep technical audit of their coding style, consistency, stack specialization, and seniority level based on public repo evidence.`,
       config: {
         responseMimeType: "application/json",
@@ -89,7 +89,7 @@ export async function compareProfiles(user1: string, user2: string, jd?: string)
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-1.5-flash-latest',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
