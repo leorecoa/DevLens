@@ -50,11 +50,15 @@ export default function App() {
 
   // Auth Listener
   useEffect(() => {
+    // Check session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Auth State [Init]:", session ? "Session Active" : "No Session");
       setSessionUser(session?.user ?? null);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Listen for changes (including redirect back from OAuth)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log(`Auth Event [${event}]:`, session?.user ? `@${session.user.user_metadata.user_name}` : "Unauthorized");
       setSessionUser(session?.user ?? null);
     });
 
@@ -84,7 +88,7 @@ export default function App() {
       }
     };
     init();
-  }, [sessionUser]);
+  }, [sessionUser, isInitialized]);
 
   // Secure Cloud Sync Logic
   useEffect(() => {
@@ -450,12 +454,12 @@ export default function App() {
                 <div ref={terminalRef} className="space-y-2 text-blue-400/90 h-44 overflow-hidden flex flex-col justify-end">
                    {terminalLogs.map((log, i) => (
                      <div key={i} className="flex gap-4 animate-in fade-in slide-in-from-left-4 duration-300">
-                       <span className="text-blue-600 font-black shrink-0 select-none opacity-40">>></span>
+                       <span className="text-blue-600 font-black shrink-0 select-none opacity-40">{">> "}</span>
                        <span className="break-all tracking-tight leading-none font-medium">{log}</span>
                      </div>
                    ))}
                    <div className="flex gap-4 animate-pulse pt-2">
-                      <span className="text-blue-600 font-black opacity-80">>></span>
+                      <span className="text-blue-600 font-black opacity-80">{">> "}</span>
                       <span className="w-3 h-4 bg-blue-500/40"></span>
                    </div>
                 </div>
