@@ -51,9 +51,9 @@ const COMPARISON_SCHEMA = {
 };
 
 const getAIClient = () => {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey || apiKey === 'SUA_CHAVE_API_AQUI') {
-    throw new Error("VITE_GEMINI_API_KEY não foi configurada corretamente. Verifique o arquivo .env e reinicie o servidor.");
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("API_KEY não configurada no ambiente.");
   }
   return new GoogleGenAI({ apiKey });
 };
@@ -63,7 +63,7 @@ export async function analyzeProfile(username: string): Promise<AIAnalysis> {
   const ai = getAIClient();
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3-pro-preview',
       contents: `Analyze the GitHub profile of user "${username}". Provide a deep technical audit of their coding style, consistency, stack specialization, and seniority level based on public repo evidence.`,
       config: {
         responseMimeType: "application/json",
@@ -89,7 +89,7 @@ export async function compareProfiles(user1: string, user2: string, jd?: string)
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
