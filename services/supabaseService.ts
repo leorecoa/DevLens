@@ -1,8 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import { PipelineFolder, UserSubscription } from '../types';
 
-const SUPABASE_URL = 'https://ubqmetsmfvzmagwlnzfm.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_7H4TOD_RSu7Osny2chEjDg_n8N7a3Mj';
+// Use environment variables from process.env with the provided keys as default fallbacks.
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ubqmetsmfvzmagwlnzfm.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7H4TOD_RSu7Osny2chEjDg_n8N7a3Mj';
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL === 'UNDEFINED') {
+  console.warn("Supabase credentials might be missing or invalid. Check your environment variables.");
+}
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -47,7 +52,6 @@ export const fetchUserProfile = async (): Promise<UserSubscription | null> => {
   
   if (!data) return null;
   
-  // Fix: mapping database snake_case field 'total_analyses' to UserSubscription camelCase field 'totalAnalyses'
   return {
     tier: data.tier,
     creditsRemaining: data.credits_remaining,

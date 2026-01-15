@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Github, Terminal, Loader2, Sparkles, Swords, Users, Target, Folders, Database, ShieldCheck, Fingerprint, Star, GitFork, Sun, Moon, Zap, Shield, Cpu, Activity, ChevronRight, Crown, Search, Wifi, Box, Globe, Lock, ShieldAlert, Laptop } from 'lucide-react';
+import { Github, Terminal, Loader2, Sparkles, Swords, Users, Target, Folders, Database, ShieldCheck, Fingerprint, Star, GitFork, Sun, Moon, Zap, Shield, Cpu, Activity, ChevronRight, Crown, Search, Wifi, Box, Globe, Lock, ShieldAlert, Laptop, FileText, AlertCircle } from 'lucide-react';
 import { analyzeProfile, compareProfiles } from './services/geminiService';
 import { fetchUserProfile, syncUserProfile, fetchFolders, syncFolders } from './services/supabaseService';
 import { AppStatus, AIAnalysis, GitHubProfile, Repository, ComparisonAnalysis, UserSubscription, PipelineFolder, SavedCandidate } from './types';
@@ -14,7 +13,8 @@ const DEFAULT_FREE_LIMIT = 10;
 
 export default function App() {
   const [username1, setUsername1] = useState('gaearon'); 
-  const [username2, setUsername2] = useState('');
+  const [username2, setUsername2] = useState('danabramov');
+  const [assessmentContext, setAssessmentContext] = useState('- We have a solid understanding of the current market.\n- We have identified key strategic priorities.\n- We have evaluated the competitive landscape.\n- We have assessed the potential risks and opportunities.');
   const [isCompareMode, setIsCompareMode] = useState(false);
   
   const [theme, setTheme] = useState(() => localStorage.getItem('devlens_theme') || 'dark');
@@ -50,7 +50,7 @@ export default function App() {
         if (remoteSub) setSub(remoteSub);
         if (remoteFolders) setFolders(remoteFolders || []);
       } catch (err) {
-        console.warn("Supabase Offline mode active.");
+        console.warn("Supabase initial link deferred. App in local-only tactical mode.");
       } finally {
         setIsInitialized(true);
       }
@@ -58,18 +58,18 @@ export default function App() {
     init();
   }, []);
 
-  // Sync logic strictly awaits User before Folders to prevent FK violations
   useEffect(() => {
     if (!isInitialized) return;
     const sync = async () => {
       try {
+        // Ensure user profile exists before attempting to sync folders (preventing FK violation)
         await syncUserProfile(sub);
         await syncFolders(folders);
       } catch (err) {
-        console.error("Sync deferred due to network or order constraint.");
+        console.error("Sync deferred due to dependency order.");
       }
     };
-    const timer = setTimeout(sync, 1500); // Debounce to prevent heavy write load
+    const timer = setTimeout(sync, 2000);
     return () => clearTimeout(timer);
   }, [sub, folders, isInitialized]);
 
@@ -143,14 +143,15 @@ export default function App() {
       
       await new Promise(r => setTimeout(r, 1000));
       setLoadingStage(1);
-      setLoadingMessage('AI ANALYSIS');
-      setLoadingSubMessage('COMPARANDO DNA TÉCNICO ENTRE CANDIDATOS...');
-      const compResult = await compareProfiles(username1, username2);
+      setLoadingMessage('AI COMPARISON');
+      setLoadingSubMessage('GEMINI 3 PRO ANALISANDO VANTAGENS TÁTICAS...');
+      const compResult = await compareProfiles(username1, username2, assessmentContext);
       setComparison(compResult);
       
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 1200));
       setLoadingStage(2);
-      setLoadingMessage('FINAL SYNTHESIS');
+      setLoadingMessage('FINAL REPORT');
+      setLoadingSubMessage('SINTETIZANDO VERDITO DE BATALHA...');
       setStatus(AppStatus.SUCCESS);
     } catch (e: any) {
       setError(e.message);
@@ -236,6 +237,7 @@ export default function App() {
         {/* SCANNER LOADING OVERLAY */}
         {status === AppStatus.LOADING && (
           <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center transition-colors duration-700 ${theme === 'dark' ? 'bg-[#080b14]' : 'bg-slate-50'}`}>
+             <div className="scanner-laser"></div>
              
              <div className="relative mb-8 scale-110">
                 <div className="absolute -inset-20 border border-blue-500/10 rounded-full animate-spin-slow"></div>
@@ -271,7 +273,7 @@ export default function App() {
                          <Icon size={28} className={loadingStage === i ? 'text-blue-500' : 'text-slate-500'} />
                       </div>
                       <span className={`text-[10px] font-black uppercase tracking-widest ${loadingStage === i ? 'text-white' : 'text-slate-600'}`}>
-                        {i === 0 ? 'Data' : i === 1 ? 'AI Analysis' : 'Synthesis'}
+                        {i === 0 ? 'Data Retrieval' : i === 1 ? 'Neural Audit' : 'Synthesis'}
                       </span>
                    </div>
                 ))}
@@ -292,13 +294,13 @@ export default function App() {
             </div>
 
             <div className="text-center space-y-0 mb-10">
-              <span className="text-[11px] font-black uppercase text-blue-500 tracking-[0.6em] block mb-6">Neural Protocol Protocol</span>
+              <span className="text-[11px] font-black uppercase text-blue-500 tracking-[0.6em] block mb-6">Neural Sourcing Protocol</span>
               <h1 className={`text-7xl md:text-[9rem] font-black italic uppercase tracking-tighter leading-[0.8] ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Inteligência</h1>
               <h1 className="text-7xl md:text-[9rem] font-black italic uppercase tracking-tighter leading-[0.8] text-blue-600 drop-shadow-[0_0_30px_rgba(37,99,235,0.3)]">Recruitment</h1>
               <h1 className={`text-7xl md:text-[9rem] font-black italic uppercase tracking-tighter leading-[0.8] ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Neural</h1>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-8">
+            <div className="flex flex-col md:flex-row gap-8 z-10">
               <button onClick={handleAnalyze} className="group relative px-16 py-6 bg-blue-600 rounded-full text-xs font-black uppercase tracking-[0.3em] transition-all hover:scale-105 hover:bg-blue-500 shadow-[0_20px_40px_-15px_rgba(37,99,235,0.4)] text-white">
                 Sondar Perfil
               </button>
@@ -309,20 +311,36 @@ export default function App() {
             </div>
             
             {isCompareMode && (
-              <div className="mt-8 animate-in slide-in-from-top-4 flex gap-4 w-full max-w-xl">
-                 <input 
-                   value={username1}
-                   onChange={(e) => setUsername1(e.target.value)}
-                   placeholder="TARGET 1"
-                   className={`flex-1 border rounded-full py-3 px-8 text-xs font-black uppercase tracking-widest focus:outline-none focus:border-blue-500 transition-all ${theme === 'dark' ? 'bg-slate-900 border-white/10 text-white' : 'bg-slate-100 border-slate-200 text-slate-900'}`}
-                 />
-                 <div className="flex items-center text-slate-500 font-black">VS</div>
-                 <input 
-                   value={username2}
-                   onChange={(e) => setUsername2(e.target.value)}
-                   placeholder="TARGET 2"
-                   className={`flex-1 border rounded-full py-3 px-8 text-xs font-black uppercase tracking-widest focus:outline-none focus:border-blue-500 transition-all ${theme === 'dark' ? 'bg-slate-900 border-white/10 text-white' : 'bg-slate-100 border-slate-200 text-slate-900'}`}
-                 />
+              <div className="mt-8 animate-in slide-in-from-top-4 flex flex-col gap-4 w-full max-w-2xl bg-slate-900/40 p-8 rounded-[2.5rem] border border-white/5 backdrop-blur-xl">
+                 <div className="flex gap-4">
+                   <input 
+                     value={username1}
+                     onChange={(e) => setUsername1(e.target.value)}
+                     placeholder="TARGET 1"
+                     className={`flex-1 border rounded-full py-3 px-8 text-xs font-black uppercase tracking-widest focus:outline-none focus:border-blue-500 transition-all ${theme === 'dark' ? 'bg-slate-900 border-white/10 text-white' : 'bg-slate-100 border-slate-200 text-slate-900'}`}
+                   />
+                   <div className="flex items-center text-slate-500 font-black">VS</div>
+                   <input 
+                     value={username2}
+                     onChange={(e) => setUsername2(e.target.value)}
+                     placeholder="TARGET 2"
+                     className={`flex-1 border rounded-full py-3 px-8 text-xs font-black uppercase tracking-widest focus:outline-none focus:border-blue-500 transition-all ${theme === 'dark' ? 'bg-slate-900 border-white/10 text-white' : 'bg-slate-100 border-slate-200 text-slate-900'}`}
+                   />
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2">
+                      <FileText size={12} /> Mission Briefing (Job Description/Context)
+                    </label>
+                    <textarea 
+                      value={assessmentContext}
+                      onChange={(e) => setAssessmentContext(e.target.value)}
+                      className="w-full h-32 bg-slate-900/60 border border-white/5 rounded-2xl p-4 text-xs font-mono text-slate-300 focus:outline-none focus:border-blue-500/50 resize-none"
+                      placeholder="Paste technical requirements or assessment goals..."
+                    />
+                 </div>
+                 <button onClick={handleCompare} className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-[10px] rounded-full transition-all shadow-lg shadow-blue-500/20">
+                   Iniciar Engajamento
+                 </button>
               </div>
             )}
           </div>
