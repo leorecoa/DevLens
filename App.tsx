@@ -107,7 +107,7 @@ export default function App() {
   }, [theme]);
 
   const addLog = (msg: string) => {
-    setTerminalLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`].slice(-8));
+    setTerminalLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`].slice(-12));
   };
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
@@ -136,9 +136,9 @@ export default function App() {
     try {
       setLoadingStage(0);
       setLoadingProgress(10);
-      setLoadingMessage('FETCHING GITHUB DATA');
-      setLoadingSubMessage('ACESSANDO ÁRVORES DE REPOSITÓRIOS...');
-      addLog("Initializing Neural Sourcing Protocol v4.0.5");
+      setLoadingMessage('ACQUISITION_INITIALIZED');
+      setLoadingSubMessage('SYNCHRONIZING REPOSITORY TREES...');
+      addLog("Initializing Neural Sourcing Protocol v5.0.1");
       addLog(`Connecting to subject: @${username1}`);
       
       const d1 = await fetchGitHubData(username1);
@@ -148,8 +148,8 @@ export default function App() {
       
       await new Promise(r => setTimeout(r, 600));
       setLoadingStage(1);
-      setLoadingMessage('NEURAL AI AUDIT');
-      setLoadingSubMessage('GEMINI 3 PRO: DECRYPTING CODING DNA...');
+      setLoadingMessage('NEURAL_AUDIT_ACTIVE');
+      setLoadingSubMessage('DECRYPTING CODING DNA VIA GEMINI 3...');
       addLog("Telemetry burst sent to Gemini Logic Engine...");
       setLoadingProgress(45);
       
@@ -160,8 +160,8 @@ export default function App() {
       
       await new Promise(r => setTimeout(r, 600));
       setLoadingStage(2);
-      setLoadingMessage('TACTICAL SYNTHESIS');
-      setLoadingSubMessage('COMPILANDO DOSSIÊ DE INTELIGÊNCIA...');
+      setLoadingMessage('TACTICAL_SYNTHESIS');
+      setLoadingSubMessage('COMPILING INTELLIGENCE DOSSIER...');
       addLog("Evaluating seniority vectors and tech stack DNA...");
       setLoadingProgress(85);
       
@@ -171,7 +171,6 @@ export default function App() {
         totalAnalyses: prev.totalAnalyses + 1
       }));
       
-      addLog("Dossier compiled successfully.");
       addLog("Mission Complete. Visualizing output...");
       setLoadingProgress(100);
       await new Promise(r => setTimeout(r, 800)); 
@@ -191,9 +190,9 @@ export default function App() {
     try {
       setLoadingStage(0);
       setLoadingProgress(10);
-      setLoadingMessage('BATTLE DATA ACQUISITION');
-      setLoadingSubMessage('SYNCHRONIZING DUAL GITHUB TARGETS...');
-      addLog(`Engaging Dual Mode: @${username1} vs @${username2}`);
+      setLoadingMessage('DUAL_TARGET_ACQUISITION');
+      setLoadingSubMessage('SYNCHRONIZING DUAL GITHUB STREAMS...');
+      addLog(`Engaging Battle Mode: @${username1} vs @${username2}`);
       
       const [d1, d2] = await Promise.all([fetchGitHubData(username1), fetchGitHubData(username2)]);
       setProfile1(d1.p); setRepos1(d1.r);
@@ -202,8 +201,8 @@ export default function App() {
       
       await new Promise(r => setTimeout(r, 600));
       setLoadingStage(1);
-      setLoadingMessage('AI BATTLE SIMULATION');
-      setLoadingSubMessage('GEMINI 3 PRO: CALCULANDO VANTAGEM TÁTICA...');
+      setLoadingMessage('COMBAT_SIMULATION');
+      setLoadingSubMessage('CALCULATING STRATEGIC SUPERIORITY...');
       addLog("Injecting mission context into Gemini Reasoning Engine...");
       setLoadingProgress(45);
       
@@ -214,13 +213,12 @@ export default function App() {
       
       await new Promise(r => setTimeout(r, 600));
       setLoadingStage(2);
-      setLoadingMessage('VERDICT SYNTHESIS');
-      setLoadingSubMessage('SINTETIZANDO RELATÓRIO DE COMANDO...');
+      setLoadingMessage('VERDICT_SYNTHESIS');
+      setLoadingSubMessage('FINALIZING COMMAND REPORT...');
       addLog("Formulating tactical rationale for selection...");
       setLoadingProgress(85);
       
       addLog("Battle simulation concluded.");
-      addLog("Opening Tactical Victory Dashboard...");
       setLoadingProgress(100);
       await new Promise(r => setTimeout(r, 800)); 
       setStatus(AppStatus.SUCCESS);
@@ -248,10 +246,9 @@ export default function App() {
     setFolders(prev => [...prev, newFolder]);
   };
 
-  // --- LOGIN SCREEN (DARK-OPS) ---
   if (!sessionUser) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8 grid-pattern transition-colors duration-500 bg-[#080b14] text-white overflow-hidden relative">
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 grid-pattern transition-colors duration-500 bg-[#080b14] text-white overflow-hidden relative crt-overlay">
          <div className="scanner-laser"></div>
          
          <div className="relative mb-12 animate-float">
@@ -297,7 +294,6 @@ export default function App() {
   return (
     <div className={`min-h-screen selection:bg-blue-500/30 overflow-x-hidden flex flex-col grid-pattern transition-colors duration-500 ${theme === 'dark' ? 'bg-[#080b14] text-white' : 'bg-slate-50 text-slate-900'}`}>
       
-      {/* HEADER */}
       <header className={`fixed top-0 left-0 right-0 z-50 h-14 backdrop-blur-xl border-b flex items-center px-6 transition-all duration-500 ${theme === 'dark' ? 'bg-[#080b14]/90 border-white/5' : 'bg-white/90 border-slate-200'}`}>
         <div className="flex items-center gap-3 w-1/4">
           <div className="bg-blue-600 p-1.5 rounded-lg shadow-lg shadow-blue-600/20">
@@ -368,81 +364,105 @@ export default function App() {
       </header>
 
       <main className="pt-14 flex-1 flex flex-col relative">
-        {/* LOADING STATE */}
         {status === AppStatus.LOADING && (
-          <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center transition-all duration-700 bg-[#080b14]">
-             <div className="scanner-laser"></div>
-             
-             <div className="relative mb-16 scale-110">
-                <div className="absolute -inset-24 border border-blue-500/10 rounded-full animate-spin-slow"></div>
-                <div className="absolute -inset-16 border border-blue-500/5 rounded-full animate-spin-reverse opacity-40"></div>
+          <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#080b14] crt-overlay neural-mesh animate-matrix-scroll overflow-hidden">
+             <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-b from-blue-500/0 via-blue-500/20 to-blue-500/0 animate-scanline"></div>
+             </div>
+
+             <div className="relative mb-20">
+                {/* Orbital Hologram Rings */}
+                <div className="absolute -inset-40 border-2 border-dashed border-blue-500/10 rounded-full animate-spin-slow"></div>
+                <div className="absolute -inset-32 border border-blue-400/20 rounded-full animate-spin-reverse opacity-60"></div>
+                <div className="absolute -inset-24 border-2 border-blue-600/30 rounded-full animate-spin-slow"></div>
                 
-                <div className={`relative w-48 h-48 rounded-full border-2 border-white/5 flex flex-col items-center justify-center bg-slate-900/40 backdrop-blur-3xl shadow-[0_0_80px_rgba(59,130,246,0.15)] transition-all duration-1000 ${loadingStage === 1 ? 'scale-110 shadow-blue-500/30' : ''}`}>
-                   {loadingStage === 0 && <Database size={72} className="text-blue-500 animate-pulse" />}
-                   {loadingStage === 1 && <CpuIcon size={72} className="text-blue-500 animate-pulse" />}
-                   {loadingStage === 2 && <ShieldCheck size={72} className="text-blue-500 animate-pulse" />}
+                {/* Central Core */}
+                <div className="relative w-64 h-64 rounded-full border-2 border-white/10 flex flex-col items-center justify-center bg-slate-900/40 backdrop-blur-3xl shadow-[0_0_120px_rgba(59,130,246,0.3)] transition-all duration-1000 scale-125">
+                   <div className="absolute inset-0 bg-blue-500/10 rounded-full animate-pulse-slow"></div>
                    
-                   <div className="mt-4 flex flex-col items-center">
-                      <div className="flex gap-1.5">
-                        <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${loadingStage >= 0 ? 'bg-blue-500 shadow-[0_0_8px_#3b82f6]' : 'bg-slate-700'}`}></div>
-                        <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${loadingStage >= 1 ? 'bg-blue-500 shadow-[0_0_8px_#3b82f6]' : 'bg-slate-700'}`}></div>
-                        <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${loadingStage >= 2 ? 'bg-blue-500 shadow-[0_0_8px_#3b82f6]' : 'bg-slate-700'}`}></div>
+                   {loadingStage === 0 && <Database size={90} className="text-blue-500 animate-pulse drop-shadow-[0_0_15px_#3b82f6]" />}
+                   {loadingStage === 1 && <CpuIcon size={90} className="text-blue-500 animate-pulse drop-shadow-[0_0_15px_#3b82f6]" />}
+                   {loadingStage === 2 && <ShieldCheck size={90} className="text-blue-500 animate-pulse drop-shadow-[0_0_15px_#3b82f6]" />}
+                   
+                   <div className="mt-6 flex flex-col items-center">
+                      <div className="flex gap-2">
+                        <div className={`w-2 h-2 rounded-full transition-all duration-700 ${loadingStage >= 0 ? 'bg-blue-400 shadow-[0_0_12px_#3b82f6]' : 'bg-slate-800'}`}></div>
+                        <div className={`w-2 h-2 rounded-full transition-all duration-700 ${loadingStage >= 1 ? 'bg-blue-400 shadow-[0_0_12px_#3b82f6]' : 'bg-slate-800'}`}></div>
+                        <div className={`w-2 h-2 rounded-full transition-all duration-700 ${loadingStage >= 2 ? 'bg-blue-400 shadow-[0_0_12px_#3b82f6]' : 'bg-slate-800'}`}></div>
                       </div>
-                      <span className="text-[8px] font-black text-blue-500/50 uppercase tracking-[0.3em] mt-3">Tactical Stage {loadingStage + 1}</span>
+                      <span className="text-[10px] font-black text-blue-500/70 uppercase tracking-[0.4em] mt-4 font-mono">Neural_Phase: 0{loadingStage + 1}</span>
                    </div>
+
+                   {/* Orbital Shards */}
+                   {[0, 72, 144, 216, 288].map((angle, i) => (
+                     <div 
+                       key={i} 
+                       className="absolute w-2 h-2 bg-blue-400 rounded-sm shadow-[0_0_8px_#3b82f6] animate-pulse"
+                       style={{ 
+                         transform: `rotate(${angle}deg) translateY(-140px)`,
+                         animationDelay: `${i * 200}ms`
+                       }}
+                     />
+                   ))}
                 </div>
              </div>
 
-             <div className="text-center space-y-4 mb-16 z-10">
-                <h2 className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-none text-white">{loadingMessage}</h2>
-                <div className="flex items-center justify-center gap-6">
-                  <div className="h-px w-20 bg-blue-500/20"></div>
-                  <p className="text-[13px] font-black uppercase tracking-[0.6em] text-blue-500 animate-pulse">{loadingSubMessage}</p>
-                  <div className="h-px w-20 bg-blue-500/20"></div>
+             <div className="text-center space-y-4 mb-20 z-10 px-6">
+                <h2 className="text-5xl md:text-8xl font-black italic uppercase tracking-tighter leading-none text-white glitch-text">
+                  {loadingMessage.replace('_', ' ')}
+                </h2>
+                <div className="flex items-center justify-center gap-8">
+                  <div className="h-[2px] w-24 bg-gradient-to-r from-transparent to-blue-500/40"></div>
+                  <p className="text-[14px] font-black uppercase tracking-[0.8em] text-blue-500 animate-pulse font-mono">{loadingSubMessage}</p>
+                  <div className="h-[2px] w-24 bg-gradient-to-l from-transparent to-blue-500/40"></div>
                 </div>
              </div>
 
-             <div className="w-full max-w-3xl px-12 mb-12">
-                <div className="flex justify-between mb-2 px-1">
-                  <span className="text-[9px] font-black text-blue-500/50 uppercase tracking-widest">Progress</span>
-                  <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest">{Math.round(loadingProgress)}%</span>
+             <div className="w-full max-w-4xl px-12 mb-16 relative">
+                <div className="flex justify-between mb-3 px-2">
+                  <span className="text-[10px] font-black text-blue-500/50 uppercase tracking-[0.3em] font-mono">INTEGRITY_INDEX</span>
+                  <span className="text-[12px] font-black text-blue-400 uppercase tracking-widest font-mono">{(loadingProgress / 100).toFixed(2)}_NEURONS</span>
                 </div>
-                <div className="w-full h-3 rounded-full overflow-hidden p-[1.5px] relative bg-slate-900 border border-white/5 shadow-inner">
+                <div className="w-full h-4 rounded-full overflow-hidden p-[2px] relative bg-slate-900 border border-white/5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
                    <div 
-                      className="h-full bg-gradient-to-r from-blue-800 via-blue-500 to-blue-400 transition-all duration-[800ms] ease-out shadow-[0_0_25px_rgba(59,130,246,0.6)] rounded-full relative z-10" 
+                      className="h-full bg-gradient-to-r from-blue-900 via-blue-500 to-blue-300 transition-all duration-[800ms] ease-out shadow-[0_0_30px_rgba(59,130,246,0.8)] rounded-full relative z-10" 
                       style={{ width: `${loadingProgress}%` }}
                    >
-                     <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                     <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:20px_20px] animate-matrix-scroll"></div>
                    </div>
                 </div>
+                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[9px] font-black text-slate-600 uppercase tracking-[0.6em]">System Initializing... Please Stand By</div>
              </div>
 
-             <div className="w-full max-w-2xl bg-black/60 backdrop-blur-xl rounded-3xl border border-white/5 p-6 font-mono text-[10px] overflow-hidden transition-all duration-500">
-                <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
-                   <div className="flex gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-red-500/40"></div>
-                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/40"></div>
-                      <div className="w-2.5 h-2.5 rounded-full bg-green-500/40"></div>
+             <div className="w-full max-w-3xl bg-black/80 backdrop-blur-3xl rounded-3xl border-2 border-white/5 p-8 font-mono text-[11px] overflow-hidden transition-all duration-500 shadow-2xl">
+                <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
+                   <div className="flex gap-3">
+                      <div className="w-3 h-3 rounded-full bg-red-500/60 animate-pulse"></div>
+                      <div className="w-3 h-3 rounded-full bg-yellow-500/60 animate-pulse"></div>
+                      <div className="w-3 h-3 rounded-full bg-green-500/60 animate-pulse"></div>
                    </div>
-                   <span className="text-slate-500 uppercase tracking-widest text-[8px] font-black">Neural_Output_Stream</span>
+                   <div className="flex items-center gap-4">
+                      <span className="text-slate-500 uppercase tracking-widest text-[9px] font-black">Uplink: STABLE</span>
+                      <div className="w-px h-3 bg-white/10"></div>
+                      <span className="text-blue-500/50 uppercase tracking-widest text-[9px] font-black">Neural_IO_V5</span>
+                   </div>
                 </div>
-                <div ref={terminalRef} className="space-y-1.5 text-blue-400/80 h-32 overflow-hidden flex flex-col justify-end">
+                <div ref={terminalRef} className="space-y-2 text-blue-400/90 h-44 overflow-hidden flex flex-col justify-end">
                    {terminalLogs.map((log, i) => (
-                     <div key={i} className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
-                       <span className="text-blue-600 font-black opacity-50 shrink-0 select-none">#</span>
-                       <span className="break-all tracking-tight leading-none">{log}</span>
+                     <div key={i} className="flex gap-4 animate-in fade-in slide-in-from-left-4 duration-300">
+                       <span className="text-blue-600 font-black shrink-0 select-none opacity-40">>></span>
+                       <span className="break-all tracking-tight leading-none font-medium">{log}</span>
                      </div>
                    ))}
-                   <div className="flex gap-3 animate-pulse">
-                      <span className="text-blue-600 font-black">#</span>
-                      <span className="w-2 h-3 bg-blue-500/50"></span>
+                   <div className="flex gap-4 animate-pulse pt-2">
+                      <span className="text-blue-600 font-black opacity-80">>></span>
+                      <span className="w-3 h-4 bg-blue-500/40"></span>
                    </div>
                 </div>
              </div>
           </div>
         )}
 
-        {/* IDLE STATE */}
         {status === AppStatus.IDLE && (
           <div className="flex-1 flex flex-col items-center justify-center p-8 animate-in fade-in duration-1000 relative">
             <div className="relative mb-12 animate-float">
@@ -456,7 +476,7 @@ export default function App() {
             </div>
 
             <div className="text-center space-y-0 mb-10">
-              <span className="text-[11px] font-black uppercase text-blue-500 tracking-[0.6em] block mb-6 animate-pulse">Neural Sourcing Protocol v4.0.2</span>
+              <span className="text-[11px] font-black uppercase text-blue-500 tracking-[0.6em] block mb-6 animate-pulse">Neural Sourcing Protocol v5.0.1</span>
               <h1 className={`text-7xl md:text-[9rem] font-black italic uppercase tracking-tighter leading-[0.8] ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Inteligência</h1>
               <h1 className="text-7xl md:text-[9rem] font-black italic uppercase tracking-tighter leading-[0.8] text-blue-600 drop-shadow-[0_0_40px_rgba(37,99,235,0.4)]">Recruitment</h1>
               <h1 className={`text-7xl md:text-[9rem] font-black italic uppercase tracking-tighter leading-[0.8] ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Neural</h1>
@@ -508,7 +528,6 @@ export default function App() {
           </div>
         )}
 
-        {/* SUCCESS STATE */}
         {status === AppStatus.SUCCESS && (
           <div className="max-w-[1400px] mx-auto w-full p-8 pb-20 animate-in slide-in-from-bottom-10 duration-700">
              {isCompareMode && comparison && profile1 && profile2 ? (
@@ -550,7 +569,6 @@ export default function App() {
           </div>
         )}
 
-        {/* ERROR STATE */}
         {status === AppStatus.ERROR && (
            <div className="flex-1 flex flex-col items-center justify-center p-8">
               <div className="relative mb-6">
@@ -564,7 +582,6 @@ export default function App() {
         )}
       </main>
 
-      {/* FOOTER */}
       <footer className={`h-12 border-t flex items-center px-6 text-slate-500 text-[10px] font-mono uppercase tracking-[0.3em] transition-colors duration-500 ${theme === 'dark' ? 'border-white/5 bg-[#080b14]' : 'border-slate-200 bg-white'}`}>
         <div className="flex-1 flex items-center gap-10">
            <div className="flex items-center gap-3">
