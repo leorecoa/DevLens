@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Send, Loader2, X, Terminal, Sparkles } from 'lucide-react';
 import { chatAboutProfile } from '../services/geminiService';
+import { AIAnalysis } from '../types';
 
 interface Props {
   username: string;
+  analysis: AIAnalysis;
 }
 
 interface Message {
@@ -11,7 +13,7 @@ interface Message {
   text: string;
 }
 
-export const ChatWidget: React.FC<Props> = ({ username }) => {
+export const ChatWidget: React.FC<Props> = ({ username, analysis }) => {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'ai', text: `Tactical AI initialized. How can I assist with your evaluation of @${username}?` }
   ]);
@@ -34,7 +36,8 @@ export const ChatWidget: React.FC<Props> = ({ username }) => {
     setLoading(true);
 
     try {
-      const response = await chatAboutProfile(username, userMsg, "User is inquiring about GitHub candidate strengths and fitting.");
+      const context = `GitHub profile analysis for @${username}: Seniority - ${analysis.seniority}, Summary - ${analysis.summary}, Strengths - ${analysis.strengths.join(', ')}, Weaknesses - ${analysis.weaknesses.join(', ')}, Tech Stack - ${analysis.techStack.join(', ')}.`;
+      const response = await chatAboutProfile(username, userMsg, context);
       setMessages(prev => [...prev, { role: 'ai', text: response }]);
     } catch (e) {
       setMessages(prev => [...prev, { role: 'ai', text: "Error connecting to neural uplink. Please retry." }]);

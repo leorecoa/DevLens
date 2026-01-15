@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
-import { AIAnalysis, Repository, PipelineFolder, SavedCandidate } from '../types';
+import { AIAnalysis, Repository, PipelineFolder, SavedCandidate, RepositoryAnalysis } from '../types';
 import { ShieldCheck, Zap, AlertTriangle, Target, Save, ChevronRight, Star, GitFork, Share2, Link, FileDown, Twitter, Linkedin, Terminal, Clock } from 'lucide-react';
+import { analyzeRepository } from '../services/geminiService';
+import { getRepositoryAnalysis, saveRepositoryAnalysis } from '../services/supabaseService';
+import { InterviewQuestionsModal } from './InterviewQuestionsModal';
+import { ResumeScoreModal } from './ResumeScoreModal';
 
 interface Props {
   analysis: AIAnalysis;
@@ -27,6 +31,10 @@ export const AnalysisDashboard: React.FC<Props> = ({
   const [showPipelineMenu, setShowPipelineMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [shareFeedback, setShareFeedback] = useState(false);
+  const [repositoryAnalyses, setRepositoryAnalyses] = useState<Record<string, RepositoryAnalysis>>({});
+  const [loadingRepoAnalysis, setLoadingRepoAnalysis] = useState<Record<string, boolean>>({});
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [showResumeModal, setShowResumeModal] = useState(false);
 
   const getSeniorityColor = (seniority: string) => {
     switch (seniority) {
@@ -60,6 +68,23 @@ export const AnalysisDashboard: React.FC<Props> = ({
 
   const handleExportPDF = () => {
     window.print();
+  };
+
+  const handleAnalyzeRepository = async (repoUrl: string, repoName: string) => {
+    setLoadingRepoAnalysis(prev => ({ ...prev, [repoUrl]: true }));
+    try {
+      let analysis = await getRepositoryAnalysis(repoUrl);
+      if (!analysis) {
+        analysis = await analyzeRepository(repoUrl);
+        await saveRepositoryAnalysis(repoUrl, analysis);
+      }
+      setRepositoryAnalyses(prev => ({ ...prev, [repoUrl]: analysis! }));
+    } catch (error) {
+      console.error(`Failed to analyze repository ${repoName}:`, error);
+      alert(`Failed to analyze repository ${repoName}. Please try again.`);
+    } finally {
+      setLoadingRepoAnalysis(prev => ({ ...prev, [repoUrl]: false }));
+    }
   };
 
   return (
@@ -225,6 +250,20 @@ export const AnalysisDashboard: React.FC<Props> = ({
                <Linkedin size={14} />
                Share Dossier on LinkedIn
              </button>
+             <button
+                onClick={() => setShowInterviewModal(true)}
+                className="w-full mt-2 bg-purple-100 dark:bg-purple-700/20 hover:bg-purple-200 dark:hover:bg-purple-700/40 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-600/30 font-black py-2.5 rounded-xl flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest transition-all no-print"
+             >
+                <Terminal size={14} />
+                Generate Interview Questions
+             </button>
+             <button
+                onClick={() => setShowResumeModal(true)}
+                className="w-full mt-2 bg-emerald-100 dark:bg-emerald-700/20 hover:bg-emerald-200 dark:hover:bg-emerald-700/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-600/30 font-black py-2.5 rounded-xl flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest transition-all no-print"
+             >
+                <FileText size={14} />
+                Score Resume
+             </button>
           </div>
         </div>
       </div>
@@ -281,28 +320,63 @@ export const AnalysisDashboard: React.FC<Props> = ({
           </a>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {repositories.slice(0, 6).map((repo, i) => (
-            <div key={i} className="p-4 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-2xl hover:border-slate-300 dark:hover:border-slate-600 transition-all group">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-black text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate max-w-[150px]">{repo.name}</h4>
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                    <Star size={10} className="text-yellow-500" /> {repo.stargazers_count}
-                  </span>
-                  <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                    <GitFork size={10} className="text-blue-500" /> {repo.forks_count}
-                  </span>
+          {repositories.slice(0, 6).map((repo, i) => {
+            const repoUrl = `https://github.com/${username}/${repo.name}`;
+            const analysis = repositoryAnalyses[repoUrl];
+            const isLoading = loadingRepoAnalysis[repoUrl];
+            return (
+              <div key={i} className="p-4 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-2xl hover:border-slate-300 dark:hover:border-slate-600 transition-all group">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-black text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate max-w-[150px]">{repo.name}</h4>
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                      <Star size={10} className="text-yellow-500" /> {repo.stargazers_count}
+                    </span>
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                      <GitFork size={10} className="text-blue-500" /> {repo.forks_count}
+                    </span>
+                  </div>
                 </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mb-3 h-8">{repo.description || "No descriptive intelligence provided."}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">{repo.language || 'Hybrid'}</span>
+                  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-600">Updated {new Date(repo.updated_at).toLocaleDateString()}</span>
+                </div>
+                {!analysis && (
+                  <button
+                    onClick={() => handleAnalyzeRepository(repoUrl, repo.name)}
+                    className="mt-3 w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-2 rounded-lg flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-blue-900/40"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Analyzing...' : 'Analyze Repository'}
+                  </button>
+                )}
+                {analysis && (
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+                    <h5 className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-2">Analysis Results</h5>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mb-1">Quality Score: {analysis.qualityScore}/100</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mb-1">Complexity: {analysis.complexity}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">{analysis.summary}</p>
+                  </div>
+                )}
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mb-3 h-8">{repo.description || "No descriptive intelligence provided."}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">{repo.language || 'Hybrid'}</span>
-                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-600">Updated {new Date(repo.updated_at).toLocaleDateString()}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
+
+      {showInterviewModal && (
+        <InterviewQuestionsModal
+          username={username}
+          onClose={() => setShowInterviewModal(false)}
+        />
+      )}
+
+      {showResumeModal && (
+        <ResumeScoreModal
+          onClose={() => setShowResumeModal(false)}
+        />
+      )}
     </div>
   );
 };

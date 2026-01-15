@@ -5,12 +5,19 @@ import { X, FolderPlus, Trash2, UserMinus, User, Calendar, ExternalLink, Chevron
 interface Props {
   folders: PipelineFolder[];
   onClose: () => void;
+  onCreateFolder: (name: string) => void;
   onDeleteFolder: (id: string) => void;
   onRemoveCandidate: (folderId: string, username: string) => void;
+  onEditFolder: (id: string, name: string, color: string) => void;
 }
 
-export const PipelineManager: React.FC<Props> = ({ folders, onClose, onDeleteFolder, onRemoveCandidate }) => {
+export const PipelineManager: React.FC<Props> = ({ folders, onClose, onCreateFolder, onDeleteFolder, onRemoveCandidate, onEditFolder }) => {
   const [selectedFolderId, setSelectedFolderId] = React.useState<string | null>(folders[0]?.id || null);
+  const [showNewFolderInput, setShowNewFolderInput] = React.useState(false);
+  const [newFolderName, setNewFolderName] = React.useState('');
+  const [editingFolderId, setEditingFolderId] = React.useState<string | null>(null);
+  const [editedFolderName, setEditedFolderName] = React.useState('');
+  const [selectedColor, setSelectedColor] = React.useState('#60a5fa');
   const activeFolder = folders.find(f => f.id === selectedFolderId);
 
   return (
@@ -21,24 +28,105 @@ export const PipelineManager: React.FC<Props> = ({ folders, onClose, onDeleteFol
         <div className="w-72 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col p-6 transition-colors duration-300">
           <div className="flex items-center justify-between mb-8">
              <h2 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Pipeline Folders</h2>
-             <button className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+             <button 
+               onClick={() => setShowNewFolderInput(!showNewFolderInput)}
+               className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+             >
                <FolderPlus size={18} />
              </button>
           </div>
           
+          {showNewFolderInput && (
+            <div className="mb-4 flex items-center gap-2">
+              <input 
+                type="text"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder="New folder name"
+                className="flex-1 p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button 
+                onClick={() => {
+                  if (newFolderName.trim()) {
+                    onCreateFolder(newFolderName.trim());
+                    setNewFolderName('');
+                    setShowNewFolderInput(false);
+                  }
+                }}
+                className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg text-sm"
+              >
+                Save
+              </button>
+              <button 
+                onClick={() => {
+                  setNewFolderName('');
+                  setShowNewFolderInput(false);
+                }}
+                className="bg-slate-300 hover:bg-slate-400 text-slate-800 p-2 rounded-lg text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+          
           <div className="flex-1 space-y-2 overflow-y-auto custom-scrollbar">
             {folders.map(f => (
-              <button 
-                key={f.id}
-                onClick={() => setSelectedFolderId(f.id)}
-                className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${selectedFolderId === f.id ? 'bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-700' : 'hover:bg-slate-100 dark:hover:bg-slate-800/50'}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: f.color }} />
-                  <span className={`text-sm font-bold ${selectedFolderId === f.id ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`}>{f.name}</span>
-                </div>
-                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full transition-colors ${selectedFolderId === f.id ? 'bg-blue-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>{f.candidates.length}</span>
-              </button>
+              <div key={f.id} className="flex items-center justify-between">
+                {editingFolderId === f.id ? (
+                  <div className="flex items-center gap-2 w-full">
+                    <input 
+                      type="text"
+                      value={editedFolderName}
+                      onChange={(e) => setEditedFolderName(e.target.value)}
+                      className="flex-1 p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input 
+                      type="color"
+                      value={selectedColor}
+                      onChange={(e) => setSelectedColor(e.target.value)}
+                      className="w-8 h-8 rounded-lg"
+                    />
+                    <button 
+                      onClick={() => {
+                        onEditFolder(f.id, editedFolderName, selectedColor);
+                        setEditingFolderId(null);
+                      }}
+                      className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg text-sm"
+                    >
+                      Save
+                    </button>
+                    <button 
+                      onClick={() => setEditingFolderId(null)}
+                      className="bg-slate-300 hover:bg-slate-400 text-slate-800 p-2 rounded-lg text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => setSelectedFolderId(f.id)}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${selectedFolderId === f.id ? 'bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-700' : 'hover:bg-slate-100 dark:hover:bg-slate-800/50'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: f.color }} />
+                      <span className={`text-sm font-bold ${selectedFolderId === f.id ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`}>{f.name}</span>
+                    </div>
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full transition-colors ${selectedFolderId === f.id ? 'bg-blue-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>{f.candidates.length}</span>
+                  </button>
+                )}
+                {editingFolderId !== f.id && (
+                  <button 
+                    onClick={() => {
+                      setEditingFolderId(f.id);
+                      setEditedFolderName(f.name);
+                      setSelectedColor(f.color);
+                    }}
+                    className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
             ))}
           </div>
           

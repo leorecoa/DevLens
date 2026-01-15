@@ -8,6 +8,9 @@ import { ChatWidget } from './components/ChatWidget';
 import { ComparisonDashboard } from './components/ComparisonDashboard';
 import { PricingModal } from './components/PricingModal';
 import { PipelineManager } from './components/PipelineManager';
+import { NewComparisonModal } from './components/NewComparisonModal';
+import { ResumeScoreModal } from './components/ResumeScoreModal';
+import { InterviewQuestionsModal } from './components/InterviewQuestionsModal';
 
 const DEFAULT_FREE_LIMIT = 10;
 
@@ -15,7 +18,6 @@ export default function App() {
   const [username1, setUsername1] = useState('gaearon'); 
   const [username2, setUsername2] = useState('danabramov');
   const [assessmentContext, setAssessmentContext] = useState('- We have a solid understanding of the current market.\n- We have identified key strategic priorities.\n- We have evaluated the competitive landscape.\n- We have assessed the potential risks and opportunities.');
-  const [isCompareMode, setIsCompareMode] = useState(false);
   
   const [theme, setTheme] = useState(() => localStorage.getItem('devlens_theme') || 'dark');
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
@@ -41,6 +43,9 @@ export default function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [isPipelineManagerOpen, setIsPipelineManagerOpen] = useState(false);
+  const [isNewComparisonModalOpen, setIsNewComparisonModalOpen] = useState(false);
+  const [isResumeScoreModalOpen, setIsResumeScoreModalOpen] = useState(false);
+  const [isInterviewQuestionsModalOpen, setIsInterviewQuestionsModalOpen] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -97,6 +102,7 @@ export default function App() {
     }
     setStatus(AppStatus.LOADING);
     setError(null);
+    setComparison(null);
     try {
       setLoadingStage(0);
       setLoadingMessage('FETCHING GITHUB DATA');
@@ -130,14 +136,16 @@ export default function App() {
     }
   };
 
-  const handleCompare = async () => {
-    if (!username1.trim() || !username2.trim()) return;
+  const handleCompare = async (user1: string, user2: string, context?: string) => {
+    if (!user1.trim() || !user2.trim()) return;
+    setIsNewComparisonModalOpen(false);
     setStatus(AppStatus.LOADING);
     setError(null);
+    setAnalysis(null);
     try {
       setLoadingStage(0);
       setLoadingMessage('FETCHING GITHUB DATA');
-      const [d1, d2] = await Promise.all([fetchGitHubData(username1), fetchGitHubData(username2)]);
+      const [d1, d2] = await Promise.all([fetchGitHubData(user1), fetchGitHubData(user2)]);
       setProfile1(d1.p); setRepos1(d1.r);
       setProfile2(d2.p); setRepos2(d2.r);
       
@@ -145,7 +153,7 @@ export default function App() {
       setLoadingStage(1);
       setLoadingMessage('AI COMPARISON');
       setLoadingSubMessage('GEMINI 3 PRO ANALISANDO VANTAGENS TÁTICAS...');
-      const compResult = await compareProfiles(username1, username2, assessmentContext);
+      const compResult = await compareProfiles(user1, user2, context || assessmentContext);
       setComparison(compResult);
       
       await new Promise(r => setTimeout(r, 1200));
@@ -175,6 +183,14 @@ export default function App() {
       candidates: []
     };
     setFolders(prev => [...prev, newFolder]);
+  };
+
+  const handleEditFolder = (id: string, name: string, color: string) => {
+    setFolders(prev => prev.map(f =>
+      f.id === id
+        ? { ...f, name, color }
+        : f
+    ));
   };
 
   return (
@@ -300,49 +316,18 @@ export default function App() {
               <h1 className={`text-7xl md:text-[9rem] font-black italic uppercase tracking-tighter leading-[0.8] ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Neural</h1>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-8 z-10">
               <button onClick={handleAnalyze} className="group relative px-16 py-6 bg-blue-600 rounded-full text-xs font-black uppercase tracking-[0.3em] transition-all hover:scale-105 hover:bg-blue-500 shadow-[0_20px_40px_-15px_rgba(37,99,235,0.4)] text-white">
                 Sondar Perfil
               </button>
-              <button onClick={() => setIsCompareMode(!isCompareMode)} className={`px-16 py-6 border rounded-full text-xs font-black uppercase tracking-[0.3em] hover:bg-white/5 transition-all flex items-center gap-4 ${theme === 'dark' ? 'border-white/10' : 'border-slate-200 bg-white shadow-sm'}`}>
+              <button onClick={() => setIsNewComparisonModalOpen(true)} className={`px-16 py-6 border rounded-full text-xs font-black uppercase tracking-[0.3em] hover:bg-white/5 transition-all flex items-center gap-4 ${theme === 'dark' ? 'border-white/10' : 'border-slate-200 bg-white shadow-sm'}`}>
                 <Swords size={20} className="transition-transform group-hover:rotate-12" />
                 Batalha Tática
               </button>
+              <button onClick={() => setIsResumeScoreModalOpen(true)} className={`px-16 py-6 border rounded-full text-xs font-black uppercase tracking-[0.3em] hover:bg-white/5 transition-all flex items-center gap-4 ${theme === 'dark' ? 'border-white/10' : 'border-slate-200 bg-white shadow-sm'}`}>
+                <FileText size={20} className="transition-transform group-hover:rotate-12" />
+                Score Resume
+              </button>
             </div>
-            
-            {isCompareMode && (
-              <div className="mt-8 animate-in slide-in-from-top-4 flex flex-col gap-4 w-full max-w-2xl bg-slate-900/40 p-8 rounded-[2.5rem] border border-white/5 backdrop-blur-xl">
-                 <div className="flex gap-4">
-                   <input 
-                     value={username1}
-                     onChange={(e) => setUsername1(e.target.value)}
-                     placeholder="TARGET 1"
-                     className={`flex-1 border rounded-full py-3 px-8 text-xs font-black uppercase tracking-widest focus:outline-none focus:border-blue-500 transition-all ${theme === 'dark' ? 'bg-slate-900 border-white/10 text-white' : 'bg-slate-100 border-slate-200 text-slate-900'}`}
-                   />
-                   <div className="flex items-center text-slate-500 font-black">VS</div>
-                   <input 
-                     value={username2}
-                     onChange={(e) => setUsername2(e.target.value)}
-                     placeholder="TARGET 2"
-                     className={`flex-1 border rounded-full py-3 px-8 text-xs font-black uppercase tracking-widest focus:outline-none focus:border-blue-500 transition-all ${theme === 'dark' ? 'bg-slate-900 border-white/10 text-white' : 'bg-slate-100 border-slate-200 text-slate-900'}`}
-                   />
-                 </div>
-                 <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2">
-                      <FileText size={12} /> Mission Briefing (Job Description/Context)
-                    </label>
-                    <textarea 
-                      value={assessmentContext}
-                      onChange={(e) => setAssessmentContext(e.target.value)}
-                      className="w-full h-32 bg-slate-900/60 border border-white/5 rounded-2xl p-4 text-xs font-mono text-slate-300 focus:outline-none focus:border-blue-500/50 resize-none"
-                      placeholder="Paste technical requirements or assessment goals..."
-                    />
-                 </div>
-                 <button onClick={handleCompare} className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-[10px] rounded-full transition-all shadow-lg shadow-blue-500/20">
-                   Iniciar Engajamento
-                 </button>
-              </div>
-            )}
           </div>
         )}
 
@@ -417,9 +402,11 @@ export default function App() {
 
       <PricingModal isOpen={isPricingOpen} onClose={() => setIsPricingOpen(false)} />
       {isPipelineManagerOpen && (
-        <PipelineManager 
-          folders={folders} 
-          onClose={() => setIsPipelineManagerOpen(false)} 
+        <PipelineManager
+          folders={folders}
+          onClose={() => setIsPipelineManagerOpen(false)}
+          onCreateFolder={handleCreateFolder}
+          onEditFolder={handleEditFolder}
           onDeleteFolder={(id) => setFolders(folders.filter(f => f.id !== id))}
           onRemoveCandidate={(fId, user) => setFolders(folders.map(f => f.id === fId ? {...f, candidates: f.candidates.filter(c => c.username !== user)} : f))}
         />

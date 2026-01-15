@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { AIAnalysis, ComparisonAnalysis } from "../types";
+import { AIAnalysis, ComparisonAnalysis, RepositoryAnalysis, InterviewQuestions, ResumeScore } from "../types";
 
 const ANALYSIS_SCHEMA = {
   type: Type.OBJECT,
@@ -125,3 +125,116 @@ export async function chatAboutProfile(username: string, question: string, conte
     return "Erro na conexão neural. Tente novamente.";
   }
 }
+
+const REPO_ANALYSIS_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    repoName: { type: Type.STRING },
+    qualityScore: { type: Type.NUMBER },
+    complexity: { type: Type.STRING, enum: ['Low', 'Medium', 'High'] },
+    summary: { type: Type.STRING },
+    techStack: { type: Type.ARRAY, items: { type: Type.STRING } },
+    recommendations: { type: Type.ARRAY, items: { type: Type.STRING } },
+  },
+  required: ["repoName", "qualityScore", "complexity", "summary", "techStack", "recommendations"]
+};
+
+const INTERVIEW_QUESTIONS_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    questions: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          question: { type: Type.STRING },
+          topic: { type: Type.STRING },
+          difficulty: { type: Type.STRING, enum: ['Easy', 'Medium', 'Hard'] },
+        },
+        required: ["question", "topic", "difficulty"]
+      }
+    }
+  },
+  required: ["questions"]
+};
+
+const RESUME_SCORE_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    score: { type: Type.NUMBER },
+    summary: { type: Type.STRING },
+    pros: { type: Type.ARRAY, items: { type: Type.STRING } },
+    cons: { type: Type.ARRAY, items: { type: Type.STRING } },
+  },
+  required: ["score", "summary", "pros", "cons"]
+};
+
+export async function analyzeRepository(repoUrl: string): Promise<RepositoryAnalysis> {
+  const ai = getAIClient();
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: `Analyze the GitHub repository at "${repoUrl}". Provide a deep technical audit of the code quality, complexity, and adherence to best practices.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: REPO_ANALYSIS_SCHEMA
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("A IA retornou uma resposta vazia.");
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Erro na análise de repositório Gemini:", error);
+    throw error;
+  }
+}
+
+export async function generateInterviewQuestions(username: string, jobDescription: string): Promise<InterviewQuestions> {
+  const ai = getAIClient();
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: `Generate a set of technical interview questions for a candidate with GitHub profile "${username}" for a job with the following description: "${jobDescription}".`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: INTERVIEW_QUESTIONS_SCHEMA
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("A IA retornou uma resposta vazia.");
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Erro na geração de perguntas de entrevista Gemini:", error);
+    throw error;
+  }
+}
+
+export async function scoreResume(resumeText: string, jobDescription: string): Promise<ResumeScore> {
+  const ai = getAIClient();
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: `Score the following resume against the provided job description. Provide a score from 0-100 and a brief summary with pros and cons.
+      
+      Job Description:
+      ${jobDescription}
+      
+      Resume:
+      ${resumeText}`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: RESUME_SCORE_SCHEMA
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("A IA retornou uma resposta vazia.");
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Erro na pontuação de currículo Gemini:", error);
+    throw error;
+  }
+}
+
