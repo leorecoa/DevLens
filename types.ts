@@ -78,29 +78,3 @@ export interface UserSubscription {
   creditsRemaining: number;
   totalAnalyses: number;
 }
-
-export interface RepositoryAnalysis {
-  repoName: string;
-  qualityScore: number; // 0-100
-  complexity: 'Low' | 'Medium' | 'High';
-  summary: string;
-  techStack: string[];
-  recommendations: string[];
-}
-
-export interface InterviewQuestion {
-  question: string;
-  topic: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-}
-
-export interface InterviewQuestions {
-  questions: InterviewQuestion[];
-}
-
-export interface ResumeScore {
-  score: number; // 0-100
-  summary: string;
-  pros: string[];
-  cons: string[];
-}

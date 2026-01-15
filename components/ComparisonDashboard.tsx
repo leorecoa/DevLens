@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import { ComparisonAnalysis, GitHubProfile, Repository } from '../types';
 import { Swords, Trophy, AlertCircle, Share2, Link, FileDown, Twitter, Linkedin, ShieldCheck, Terminal, Clock } from 'lucide-react';
-import { NewComparisonModal } from './NewComparisonModal';
-import { compareProfiles } from '../services/geminiService';
-import { saveComparison } from '../services/supabaseService';
 
 interface Props {
   comparison: ComparisonAnalysis;
@@ -16,9 +13,6 @@ interface Props {
 export const ComparisonDashboard: React.FC<Props> = ({ comparison, p1, p2, r1, r2 }) => {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [shareFeedback, setShareFeedback] = useState(false);
-  const [showComparisonModal, setShowComparisonModal] = useState(false);
-  const [comparisonLoading, setComparisonLoading] = useState(false);
-  const [comparisonError, setComparisonError] = useState<string | null>(null);
   const isP1Winner = comparison.winner.toLowerCase() === p1.login.toLowerCase();
 
   const ScoreBar = ({ score, color }: { score: number, color: string }) => (
@@ -53,25 +47,6 @@ export const ComparisonDashboard: React.FC<Props> = ({ comparison, p1, p2, r1, r
 
   const handleExportPDF = () => {
     window.print();
-  };
-
-  const handleNewComparison = async (user1Login: string, user2Login: string, jd?: string) => {
-    setComparisonLoading(true);
-    setComparisonError(null);
-    try {
-      const newComparison = await compareProfiles(user1Login, user2Login, jd);
-      await saveComparison(user1Login, user2Login, newComparison);
-      // Ideally, here we would navigate to a new comparison dashboard or update the current one
-      // For now, we'll just log and close the modal.
-      console.log("New comparison generated and saved:", newComparison);
-      alert("Comparison generated successfully! Refresh to see new comparison.");
-      setShowComparisonModal(false);
-    } catch (error) {
-      console.error("Error generating new comparison:", error);
-      setComparisonError("Failed to generate new comparison. Please try again.");
-    } finally {
-      setComparisonLoading(false);
-    }
   };
 
   return (
@@ -176,13 +151,6 @@ export const ComparisonDashboard: React.FC<Props> = ({ comparison, p1, p2, r1, r
                     <Linkedin size={12} />
                     Share on LinkedIn
                   </button>
-                  <button
-                    onClick={() => setShowComparisonModal(true)}
-                    className="mx-auto mt-1 flex items-center gap-2 px-6 py-2 bg-purple-100 dark:bg-purple-700/20 hover:bg-purple-200 dark:hover:bg-purple-700/40 border border-purple-200 dark:border-purple-600/30 rounded-full text-[10px] font-black uppercase text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-all w-full max-w-[200px] shadow-sm"
-                  >
-                    <Swords size={12} />
-                    New Comparison
-                  </button>
                 </div>
              </div>
           </div>
@@ -243,15 +211,6 @@ export const ComparisonDashboard: React.FC<Props> = ({ comparison, p1, p2, r1, r
           </tbody>
         </table>
       </div>
-
-      {showComparisonModal && (
-        <NewComparisonModal
-          onClose={() => setShowComparisonModal(false)}
-          onCompare={handleNewComparison}
-          loading={comparisonLoading}
-          error={comparisonError}
-        />
-      )}
     </div>
   );
 };

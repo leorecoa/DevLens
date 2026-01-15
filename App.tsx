@@ -1,29 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { Github, Terminal, Loader2, Sparkles, Swords, Users, Target, Folders, Database, ShieldCheck, Fingerprint, Star, GitFork, Sun, Moon, Zap, Shield, Cpu, Activity, ChevronRight, Crown, Search, Wifi, Box, Globe, Lock, ShieldAlert, Laptop, FileText, AlertCircle } from 'lucide-react';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Github, Terminal, Loader2, Sparkles, Swords, Users, Target, Folders, Database, ShieldCheck, Fingerprint, Star, GitFork, Sun, Moon, Zap, Shield, Cpu, Activity, ChevronRight, Crown, Search, Wifi, Box, Globe, Lock, ShieldAlert, Laptop, FileText, AlertCircle, Cpu as CpuIcon, Layers, Network, LogOut, LogIn } from 'lucide-react';
 import { analyzeProfile, compareProfiles } from './services/geminiService';
-import { fetchUserProfile, syncUserProfile, fetchFolders, syncFolders } from './services/supabaseService';
+import { fetchUserProfile, syncUserProfile, fetchFolders, syncFolders, supabase, signInWithGitHub, signOut } from './services/supabaseService';
 import { AppStatus, AIAnalysis, GitHubProfile, Repository, ComparisonAnalysis, UserSubscription, PipelineFolder, SavedCandidate } from './types';
 import { AnalysisDashboard } from './components/AnalysisDashboard';
 import { ChatWidget } from './components/ChatWidget';
 import { ComparisonDashboard } from './components/ComparisonDashboard';
 import { PricingModal } from './components/PricingModal';
 import { PipelineManager } from './components/PipelineManager';
-import { NewComparisonModal } from './components/NewComparisonModal';
-import { ResumeScoreModal } from './components/ResumeScoreModal';
-import { InterviewQuestionsModal } from './components/InterviewQuestionsModal';
 
 const DEFAULT_FREE_LIMIT = 10;
 
 export default function App() {
+  const [sessionUser, setSessionUser] = useState<any>(null);
   const [username1, setUsername1] = useState('gaearon'); 
   const [username2, setUsername2] = useState('danabramov');
-  const [assessmentContext, setAssessmentContext] = useState('- We have a solid understanding of the current market.\n- We have identified key strategic priorities.\n- We have evaluated the competitive landscape.\n- We have assessed the potential risks and opportunities.');
+  const [assessmentContext, setAssessmentContext] = useState('- Priority: Senior React Expertise\n- Requirement: Open Source contributor\n- Context: Looking for a core architecture lead.');
+  const [isCompareMode, setIsCompareMode] = useState(false);
   
   const [theme, setTheme] = useState(() => localStorage.getItem('devlens_theme') || 'dark');
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [loadingMessage, setLoadingMessage] = useState('FETCHING GITHUB DATA');
-  const [loadingSubMessage, setLoadingSubMessage] = useState('ACESSANDO ÁRVORES DE REPOSITÓRIOS E HISTÓRICO...');
+  const [loadingSubMessage, setLoadingSubMessage] = useState('INITIALIZING NEURAL UPLINK...');
   const [loadingStage, setLoadingStage] = useState(0); 
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [terminalLogs, setTerminalLogs] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
@@ -43,11 +45,32 @@ export default function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [isPipelineManagerOpen, setIsPipelineManagerOpen] = useState(false);
-  const [isNewComparisonModalOpen, setIsNewComparisonModalOpen] = useState(false);
-  const [isResumeScoreModalOpen, setIsResumeScoreModalOpen] = useState(false);
-  const [isInterviewQuestionsModalOpen, setIsInterviewQuestionsModalOpen] = useState(false);
 
+  const terminalRef = useRef<HTMLDivElement>(null);
+
+  // Auth Listener
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSessionUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSessionUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Data Initialization
+  useEffect(() => {
+    if (!sessionUser) {
+      if (isInitialized) {
+        setSub({ tier: 'FREE', creditsRemaining: DEFAULT_FREE_LIMIT, totalAnalyses: 0 });
+        setFolders([]);
+      }
+      return;
+    }
+
     const init = async () => {
       try {
         const remoteSub = await fetchUserProfile();
@@ -55,42 +78,48 @@ export default function App() {
         if (remoteSub) setSub(remoteSub);
         if (remoteFolders) setFolders(remoteFolders || []);
       } catch (err) {
-        console.warn("Supabase initial link deferred. App in local-only tactical mode.");
+        console.warn("Supabase initial link deferred.");
       } finally {
         setIsInitialized(true);
       }
     };
     init();
-  }, []);
+  }, [sessionUser]);
 
+  // Secure Cloud Sync Logic
   useEffect(() => {
-    if (!isInitialized) return;
+    if (!isInitialized || !sessionUser) return;
     const sync = async () => {
       try {
-        // Ensure user profile exists before attempting to sync folders (preventing FK violation)
         await syncUserProfile(sub);
         await syncFolders(folders);
       } catch (err) {
-        console.error("Sync deferred due to dependency order.");
+        console.error("Tactical Sync Error:", err);
       }
     };
-    const timer = setTimeout(sync, 2000);
+    const timer = setTimeout(sync, 2000); 
     return () => clearTimeout(timer);
-  }, [sub, folders, isInitialized]);
+  }, [sub, folders, isInitialized, sessionUser]);
 
   useEffect(() => {
     localStorage.setItem('devlens_theme', theme);
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
 
+  const addLog = (msg: string) => {
+    setTerminalLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`].slice(-8));
+  };
+
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   const fetchGitHubData = async (user: string) => {
+    addLog(`GET /users/${user} - Requesting Core Profile...`);
     const [pRes, rRes] = await Promise.all([
       fetch(`https://api.github.com/users/${user}`),
       fetch(`https://api.github.com/users/${user}/repos?sort=updated&per_page=15`)
     ]);
     if (!pRes.ok) throw new Error(`Subject @${user} not found in database.`);
+    addLog(`SUCCESS: Received payload for @${user}`);
     return { p: await pRes.json(), r: await rRes.json() };
   };
 
@@ -101,34 +130,51 @@ export default function App() {
       return;
     }
     setStatus(AppStatus.LOADING);
+    setTerminalLogs([]);
+    setLoadingProgress(0);
     setError(null);
-    setComparison(null);
     try {
       setLoadingStage(0);
+      setLoadingProgress(10);
       setLoadingMessage('FETCHING GITHUB DATA');
-      setLoadingSubMessage('INICIANDO CONEXÃO COM API GITHUB...');
+      setLoadingSubMessage('ACESSANDO ÁRVORES DE REPOSITÓRIOS...');
+      addLog("Initializing Neural Sourcing Protocol v4.0.5");
+      addLog(`Connecting to subject: @${username1}`);
+      
       const d1 = await fetchGitHubData(username1);
       setProfile1(d1.p);
       setRepos1(d1.r);
+      setLoadingProgress(33);
       
-      await new Promise(r => setTimeout(r, 1200));
+      await new Promise(r => setTimeout(r, 600));
       setLoadingStage(1);
-      setLoadingMessage('AI ANALYSIS');
-      setLoadingSubMessage('GEMINI 3 PRO ANALISANDO DNA TÉCNICO...');
+      setLoadingMessage('NEURAL AI AUDIT');
+      setLoadingSubMessage('GEMINI 3 PRO: DECRYPTING CODING DNA...');
+      addLog("Telemetry burst sent to Gemini Logic Engine...");
+      setLoadingProgress(45);
+      
       const aiResult = await analyzeProfile(username1);
       setAnalysis(aiResult);
+      addLog("Analysis payload received. Processing skill matrix...");
+      setLoadingProgress(66);
       
-      await new Promise(r => setTimeout(r, 1200));
+      await new Promise(r => setTimeout(r, 600));
       setLoadingStage(2);
-      setLoadingMessage('FINAL SYNTHESIS');
-      setLoadingSubMessage('COMPILANDO RELATÓRIO ESTRATÉGICO FINAL...');
+      setLoadingMessage('TACTICAL SYNTHESIS');
+      setLoadingSubMessage('COMPILANDO DOSSIÊ DE INTELIGÊNCIA...');
+      addLog("Evaluating seniority vectors and tech stack DNA...");
+      setLoadingProgress(85);
+      
       setSub(prev => ({
         ...prev,
         creditsRemaining: prev.tier === 'PRO' ? prev.creditsRemaining : Math.max(0, prev.creditsRemaining - 1),
         totalAnalyses: prev.totalAnalyses + 1
       }));
       
-      await new Promise(r => setTimeout(r, 1000)); 
+      addLog("Dossier compiled successfully.");
+      addLog("Mission Complete. Visualizing output...");
+      setLoadingProgress(100);
+      await new Promise(r => setTimeout(r, 800)); 
       setStatus(AppStatus.SUCCESS);
     } catch (e: any) {
       setError(e.message);
@@ -136,30 +182,47 @@ export default function App() {
     }
   };
 
-  const handleCompare = async (user1: string, user2: string, context?: string) => {
-    if (!user1.trim() || !user2.trim()) return;
-    setIsNewComparisonModalOpen(false);
+  const handleCompare = async () => {
+    if (!username1.trim() || !username2.trim()) return;
     setStatus(AppStatus.LOADING);
+    setTerminalLogs([]);
+    setLoadingProgress(0);
     setError(null);
-    setAnalysis(null);
     try {
       setLoadingStage(0);
-      setLoadingMessage('FETCHING GITHUB DATA');
-      const [d1, d2] = await Promise.all([fetchGitHubData(user1), fetchGitHubData(user2)]);
+      setLoadingProgress(10);
+      setLoadingMessage('BATTLE DATA ACQUISITION');
+      setLoadingSubMessage('SYNCHRONIZING DUAL GITHUB TARGETS...');
+      addLog(`Engaging Dual Mode: @${username1} vs @${username2}`);
+      
+      const [d1, d2] = await Promise.all([fetchGitHubData(username1), fetchGitHubData(username2)]);
       setProfile1(d1.p); setRepos1(d1.r);
       setProfile2(d2.p); setRepos2(d2.r);
+      setLoadingProgress(33);
       
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 600));
       setLoadingStage(1);
-      setLoadingMessage('AI COMPARISON');
-      setLoadingSubMessage('GEMINI 3 PRO ANALISANDO VANTAGENS TÁTICAS...');
-      const compResult = await compareProfiles(user1, user2, context || assessmentContext);
-      setComparison(compResult);
+      setLoadingMessage('AI BATTLE SIMULATION');
+      setLoadingSubMessage('GEMINI 3 PRO: CALCULANDO VANTAGEM TÁTICA...');
+      addLog("Injecting mission context into Gemini Reasoning Engine...");
+      setLoadingProgress(45);
       
-      await new Promise(r => setTimeout(r, 1200));
+      const compResult = await compareProfiles(username1, username2, assessmentContext);
+      setComparison(compResult);
+      addLog("Comparison matrix finalized. Determining winner...");
+      setLoadingProgress(66);
+      
+      await new Promise(r => setTimeout(r, 600));
       setLoadingStage(2);
-      setLoadingMessage('FINAL REPORT');
-      setLoadingSubMessage('SINTETIZANDO VERDITO DE BATALHA...');
+      setLoadingMessage('VERDICT SYNTHESIS');
+      setLoadingSubMessage('SINTETIZANDO RELATÓRIO DE COMANDO...');
+      addLog("Formulating tactical rationale for selection...");
+      setLoadingProgress(85);
+      
+      addLog("Battle simulation concluded.");
+      addLog("Opening Tactical Victory Dashboard...");
+      setLoadingProgress(100);
+      await new Promise(r => setTimeout(r, 800)); 
       setStatus(AppStatus.SUCCESS);
     } catch (e: any) {
       setError(e.message);
@@ -185,18 +248,56 @@ export default function App() {
     setFolders(prev => [...prev, newFolder]);
   };
 
-  const handleEditFolder = (id: string, name: string, color: string) => {
-    setFolders(prev => prev.map(f =>
-      f.id === id
-        ? { ...f, name, color }
-        : f
-    ));
-  };
+  // --- LOGIN SCREEN (DARK-OPS) ---
+  if (!sessionUser) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 grid-pattern transition-colors duration-500 bg-[#080b14] text-white overflow-hidden relative">
+         <div className="scanner-laser"></div>
+         
+         <div className="relative mb-12 animate-float">
+            <div className="absolute inset-0 bg-blue-600 blur-[150px] opacity-20 animate-pulse-slow"></div>
+            <div className="relative w-56 h-56 rounded-[3.5rem] border border-white/10 flex items-center justify-center backdrop-blur-md bg-white/[0.02] shadow-[0_0_100px_rgba(59,130,246,0.1)] group">
+               <Terminal size={100} strokeWidth={1} className="text-blue-500 transition-transform group-hover:scale-110 duration-700" />
+               <div className="absolute inset-0 border border-blue-500/20 rounded-[3.5rem] animate-ping scale-75 opacity-20"></div>
+            </div>
+         </div>
+
+         <div className="text-center space-y-4 mb-16 relative z-10">
+           <span className="text-[12px] font-black uppercase text-blue-500 tracking-[0.8em] block mb-2 animate-pulse">Neural Access Protocol</span>
+           <h1 className="text-7xl md:text-9xl font-black italic uppercase tracking-tighter leading-none text-white drop-shadow-2xl">Entry Required</h1>
+           <p className="text-slate-500 font-bold uppercase text-[11px] tracking-[0.4em] max-w-sm mx-auto leading-relaxed mt-6">Autentique sua identidade via GitHub para inicializar o motor neural DevLens.</p>
+         </div>
+
+         <button 
+           onClick={signInWithGitHub}
+           className="group relative px-16 py-6 bg-white text-black rounded-full text-xs font-black uppercase tracking-[0.3em] transition-all hover:scale-105 hover:bg-slate-100 shadow-[0_30px_60px_-15px_rgba(255,255,255,0.2)] flex items-center gap-6 overflow-hidden"
+         >
+           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-blue-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+           <Github size={24} fill="currentColor" />
+           Sign in with GitHub
+         </button>
+
+         <div className="mt-20 flex gap-12 items-center opacity-30 grayscale transition-all hover:opacity-60 hover:grayscale-0">
+            <div className="flex flex-col items-center gap-2">
+              <Lock size={20} className="text-blue-500" />
+              <span className="text-[7px] font-black uppercase tracking-widest">Encrypted</span>
+            </div>
+            <div className="h-px w-20 bg-slate-800"></div>
+            <span className="text-[9px] font-black uppercase tracking-[0.5em] font-mono text-slate-500">Neural Security Verified</span>
+            <div className="h-px w-20 bg-slate-800"></div>
+            <div className="flex flex-col items-center gap-2">
+              <Shield size={20} className="text-emerald-500" />
+              <span className="text-[7px] font-black uppercase tracking-widest">Protected</span>
+            </div>
+         </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen selection:bg-blue-500/30 overflow-x-hidden flex flex-col grid-pattern transition-colors duration-500 ${theme === 'dark' ? 'bg-[#080b14] text-white' : 'bg-slate-50 text-slate-900'}`}>
       
-      {/* FIXED HEADER */}
+      {/* HEADER */}
       <header className={`fixed top-0 left-0 right-0 z-50 h-14 backdrop-blur-xl border-b flex items-center px-6 transition-all duration-500 ${theme === 'dark' ? 'bg-[#080b14]/90 border-white/5' : 'bg-white/90 border-slate-200'}`}>
         <div className="flex items-center gap-3 w-1/4">
           <div className="bg-blue-600 p-1.5 rounded-lg shadow-lg shadow-blue-600/20">
@@ -213,13 +314,13 @@ export default function App() {
              <Folders size={14} className="text-slate-500 group-hover:text-blue-500 transition-colors" />
              <div className="flex flex-col -space-y-1 text-left">
                <span className="text-[7px] font-black uppercase tracking-[0.2em] text-slate-500">Pipeline</span>
-               <span className="text-[10px] font-bold">{folders.reduce((acc, f) => acc + f.candidates.length, 0)} Salvos</span>
+               <span className="text-[10px] font-bold">{folders.reduce((acc, f) => acc + f.candidates.length, 0)} Targets</span>
              </div>
           </button>
 
           <button onClick={() => setIsPricingOpen(true)} className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-full px-4 py-1.5 hover:bg-amber-500/20 transition-all group">
             <Crown size={12} className="text-amber-500 transition-transform group-hover:scale-110" fill="currentColor" />
-            <span className="text-[9px] font-black uppercase text-amber-500 tracking-widest">Go Pro</span>
+            <span className="text-[9px] font-black uppercase text-amber-500 tracking-widest">Upgrade Intel</span>
           </button>
 
           <div className="relative w-72">
@@ -238,6 +339,23 @@ export default function App() {
            <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-500/10 transition-colors">
               {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
            </button>
+           
+           <div className="h-6 w-px bg-slate-500/20 mx-2"></div>
+
+           <div className="flex items-center gap-3">
+              <div className="flex flex-col items-end -space-y-1">
+                 <span className="text-[9px] font-black uppercase tracking-tighter truncate max-w-[80px]">@{sessionUser.user_metadata.user_name || sessionUser.email.split('@')[0]}</span>
+                 <button onClick={signOut} className="text-[7px] font-bold text-red-500 uppercase tracking-[0.2em] hover:text-red-400 transition-colors flex items-center gap-1">
+                    <LogOut size={8} /> Logout
+                 </button>
+              </div>
+              <img 
+                src={sessionUser.user_metadata.avatar_url || `https://github.com/${sessionUser.user_metadata.user_name}.png`} 
+                className="w-8 h-8 rounded-lg border border-white/10 shadow-lg" 
+                alt="" 
+              />
+           </div>
+
            <button 
              onClick={isCompareMode ? handleCompare : handleAnalyze}
              disabled={status === AppStatus.LOADING}
@@ -249,59 +367,87 @@ export default function App() {
         </div>
       </header>
 
-      <main className="pt-14 flex-1 flex flex-col">
-        {/* SCANNER LOADING OVERLAY */}
+      <main className="pt-14 flex-1 flex flex-col relative">
+        {/* LOADING STATE */}
         {status === AppStatus.LOADING && (
-          <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center transition-colors duration-700 ${theme === 'dark' ? 'bg-[#080b14]' : 'bg-slate-50'}`}>
+          <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center transition-all duration-700 bg-[#080b14]">
              <div className="scanner-laser"></div>
              
-             <div className="relative mb-8 scale-110">
-                <div className="absolute -inset-20 border border-blue-500/10 rounded-full animate-spin-slow"></div>
-                <div className="absolute -inset-16 border border-blue-500/5 rounded-full"></div>
+             <div className="relative mb-16 scale-110">
+                <div className="absolute -inset-24 border border-blue-500/10 rounded-full animate-spin-slow"></div>
+                <div className="absolute -inset-16 border border-blue-500/5 rounded-full animate-spin-reverse opacity-40"></div>
                 
-                <div className={`relative w-40 h-40 rounded-full border-2 border-white/5 flex flex-col items-center justify-center bg-slate-900/40 backdrop-blur-3xl shadow-[0_0_60px_rgba(59,130,246,0.15)]`}>
-                   <Database size={64} className="text-blue-500 mb-2 animate-pulse" />
-                   <div className="flex gap-1.5 mt-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping"></div>
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500/30"></div>
-                   </div>
-                </div>
-             </div>
-
-             <div className="text-center space-y-3 mb-14">
-                <h2 className={`text-7xl font-black italic uppercase tracking-tighter leading-none ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{loadingMessage}</h2>
-                <p className="text-[11px] font-black uppercase tracking-[0.5em] text-slate-500">{loadingSubMessage}</p>
-             </div>
-
-             <div className="w-full max-w-2xl px-8 mb-14">
-                <div className={`w-full h-1.5 rounded-full overflow-hidden p-[1px] ${theme === 'dark' ? 'bg-slate-900 border border-white/5 shadow-inner' : 'bg-slate-200 border border-slate-300'}`}>
-                   <div 
-                      className="h-full bg-blue-600 transition-all duration-[1500ms] ease-out shadow-[0_0_15px_rgba(59,130,246,1)] rounded-full" 
-                      style={{ width: `${((loadingStage + 1) / 3) * 100}%` }}
-                   ></div>
-                </div>
-             </div>
-
-             <div className="flex gap-20 items-center justify-center w-full max-w-5xl px-12 border-t border-white/5 pt-16">
-                {[Database, Target, ShieldCheck].map((Icon, i) => (
-                   <div key={i} className={`flex flex-col items-center gap-5 transition-all duration-700 ${loadingStage >= i ? 'opacity-100' : 'opacity-20 grayscale'}`}>
-                      <div className={`w-16 h-16 border-2 rounded-2xl flex items-center justify-center transition-all ${loadingStage === i ? 'border-blue-600 bg-blue-600/10 shadow-[0_0_20px_rgba(37,99,235,0.2)]' : 'border-white/10 bg-slate-900/40'}`}>
-                         <Icon size={28} className={loadingStage === i ? 'text-blue-500' : 'text-slate-500'} />
+                <div className={`relative w-48 h-48 rounded-full border-2 border-white/5 flex flex-col items-center justify-center bg-slate-900/40 backdrop-blur-3xl shadow-[0_0_80px_rgba(59,130,246,0.15)] transition-all duration-1000 ${loadingStage === 1 ? 'scale-110 shadow-blue-500/30' : ''}`}>
+                   {loadingStage === 0 && <Database size={72} className="text-blue-500 animate-pulse" />}
+                   {loadingStage === 1 && <CpuIcon size={72} className="text-blue-500 animate-pulse" />}
+                   {loadingStage === 2 && <ShieldCheck size={72} className="text-blue-500 animate-pulse" />}
+                   
+                   <div className="mt-4 flex flex-col items-center">
+                      <div className="flex gap-1.5">
+                        <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${loadingStage >= 0 ? 'bg-blue-500 shadow-[0_0_8px_#3b82f6]' : 'bg-slate-700'}`}></div>
+                        <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${loadingStage >= 1 ? 'bg-blue-500 shadow-[0_0_8px_#3b82f6]' : 'bg-slate-700'}`}></div>
+                        <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${loadingStage >= 2 ? 'bg-blue-500 shadow-[0_0_8px_#3b82f6]' : 'bg-slate-700'}`}></div>
                       </div>
-                      <span className={`text-[10px] font-black uppercase tracking-widest ${loadingStage === i ? 'text-white' : 'text-slate-600'}`}>
-                        {i === 0 ? 'Data Retrieval' : i === 1 ? 'Neural Audit' : 'Synthesis'}
-                      </span>
+                      <span className="text-[8px] font-black text-blue-500/50 uppercase tracking-[0.3em] mt-3">Tactical Stage {loadingStage + 1}</span>
                    </div>
-                ))}
+                </div>
+             </div>
+
+             <div className="text-center space-y-4 mb-16 z-10">
+                <h2 className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-none text-white">{loadingMessage}</h2>
+                <div className="flex items-center justify-center gap-6">
+                  <div className="h-px w-20 bg-blue-500/20"></div>
+                  <p className="text-[13px] font-black uppercase tracking-[0.6em] text-blue-500 animate-pulse">{loadingSubMessage}</p>
+                  <div className="h-px w-20 bg-blue-500/20"></div>
+                </div>
+             </div>
+
+             <div className="w-full max-w-3xl px-12 mb-12">
+                <div className="flex justify-between mb-2 px-1">
+                  <span className="text-[9px] font-black text-blue-500/50 uppercase tracking-widest">Progress</span>
+                  <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest">{Math.round(loadingProgress)}%</span>
+                </div>
+                <div className="w-full h-3 rounded-full overflow-hidden p-[1.5px] relative bg-slate-900 border border-white/5 shadow-inner">
+                   <div 
+                      className="h-full bg-gradient-to-r from-blue-800 via-blue-500 to-blue-400 transition-all duration-[800ms] ease-out shadow-[0_0_25px_rgba(59,130,246,0.6)] rounded-full relative z-10" 
+                      style={{ width: `${loadingProgress}%` }}
+                   >
+                     <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                   </div>
+                </div>
+             </div>
+
+             <div className="w-full max-w-2xl bg-black/60 backdrop-blur-xl rounded-3xl border border-white/5 p-6 font-mono text-[10px] overflow-hidden transition-all duration-500">
+                <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
+                   <div className="flex gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-500/40"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/40"></div>
+                      <div className="w-2.5 h-2.5 rounded-full bg-green-500/40"></div>
+                   </div>
+                   <span className="text-slate-500 uppercase tracking-widest text-[8px] font-black">Neural_Output_Stream</span>
+                </div>
+                <div ref={terminalRef} className="space-y-1.5 text-blue-400/80 h-32 overflow-hidden flex flex-col justify-end">
+                   {terminalLogs.map((log, i) => (
+                     <div key={i} className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
+                       <span className="text-blue-600 font-black opacity-50 shrink-0 select-none">#</span>
+                       <span className="break-all tracking-tight leading-none">{log}</span>
+                     </div>
+                   ))}
+                   <div className="flex gap-3 animate-pulse">
+                      <span className="text-blue-600 font-black">#</span>
+                      <span className="w-2 h-3 bg-blue-500/50"></span>
+                   </div>
+                </div>
              </div>
           </div>
         )}
 
+        {/* IDLE STATE */}
         {status === AppStatus.IDLE && (
           <div className="flex-1 flex flex-col items-center justify-center p-8 animate-in fade-in duration-1000 relative">
             <div className="relative mb-12 animate-float">
                <div className="absolute inset-0 bg-blue-600 blur-[150px] opacity-10 animate-pulse-slow"></div>
-               <div className={`relative w-56 h-56 rounded-full border flex items-center justify-center backdrop-blur-sm group shadow-2xl transition-all ${theme === 'dark' ? 'border-white/5 bg-white/[0.02]' : 'border-slate-200 bg-white/60'}`}>
+               <div className={`relative w-56 h-56 rounded-[3.5rem] border flex items-center justify-center backdrop-blur-sm group shadow-2xl transition-all ${theme === 'dark' ? 'border-white/5 bg-white/[0.02]' : 'border-slate-200 bg-white/60'}`}>
                   <Github size={120} strokeWidth={1} className="text-blue-500 transition-transform group-hover:scale-105 duration-500" />
                   <div className="absolute -bottom-2 -right-2 bg-amber-500 p-3 rounded-2xl shadow-2xl rotate-12 group-hover:rotate-0 transition-transform duration-500 shadow-amber-500/30">
                      <Crown size={36} className="text-black" fill="currentColor" />
@@ -310,27 +456,59 @@ export default function App() {
             </div>
 
             <div className="text-center space-y-0 mb-10">
-              <span className="text-[11px] font-black uppercase text-blue-500 tracking-[0.6em] block mb-6">Neural Sourcing Protocol</span>
+              <span className="text-[11px] font-black uppercase text-blue-500 tracking-[0.6em] block mb-6 animate-pulse">Neural Sourcing Protocol v4.0.2</span>
               <h1 className={`text-7xl md:text-[9rem] font-black italic uppercase tracking-tighter leading-[0.8] ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Inteligência</h1>
-              <h1 className="text-7xl md:text-[9rem] font-black italic uppercase tracking-tighter leading-[0.8] text-blue-600 drop-shadow-[0_0_30px_rgba(37,99,235,0.3)]">Recruitment</h1>
+              <h1 className="text-7xl md:text-[9rem] font-black italic uppercase tracking-tighter leading-[0.8] text-blue-600 drop-shadow-[0_0_40px_rgba(37,99,235,0.4)]">Recruitment</h1>
               <h1 className={`text-7xl md:text-[9rem] font-black italic uppercase tracking-tighter leading-[0.8] ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Neural</h1>
             </div>
 
-              <button onClick={handleAnalyze} className="group relative px-16 py-6 bg-blue-600 rounded-full text-xs font-black uppercase tracking-[0.3em] transition-all hover:scale-105 hover:bg-blue-500 shadow-[0_20px_40px_-15px_rgba(37,99,235,0.4)] text-white">
+            <div className="flex flex-col md:flex-row gap-8 z-10">
+              <button onClick={handleAnalyze} className="group relative px-20 py-6 bg-blue-600 rounded-full text-[11px] font-black uppercase tracking-[0.4em] transition-all hover:scale-105 hover:bg-blue-500 shadow-[0_25px_50px_-15px_rgba(37,99,235,0.4)] text-white">
                 Sondar Perfil
               </button>
-              <button onClick={() => setIsNewComparisonModalOpen(true)} className={`px-16 py-6 border rounded-full text-xs font-black uppercase tracking-[0.3em] hover:bg-white/5 transition-all flex items-center gap-4 ${theme === 'dark' ? 'border-white/10' : 'border-slate-200 bg-white shadow-sm'}`}>
+              <button onClick={() => setIsCompareMode(!isCompareMode)} className={`px-20 py-6 border rounded-full text-[11px] font-black uppercase tracking-[0.4em] hover:bg-white/5 transition-all flex items-center gap-5 ${theme === 'dark' ? 'border-white/10' : 'border-slate-200 bg-white shadow-sm'}`}>
                 <Swords size={20} className="transition-transform group-hover:rotate-12" />
                 Batalha Tática
               </button>
-              <button onClick={() => setIsResumeScoreModalOpen(true)} className={`px-16 py-6 border rounded-full text-xs font-black uppercase tracking-[0.3em] hover:bg-white/5 transition-all flex items-center gap-4 ${theme === 'dark' ? 'border-white/10' : 'border-slate-200 bg-white shadow-sm'}`}>
-                <FileText size={20} className="transition-transform group-hover:rotate-12" />
-                Score Resume
-              </button>
             </div>
+            
+            {isCompareMode && (
+              <div className="mt-12 animate-in slide-in-from-top-6 flex flex-col gap-6 w-full max-w-2xl bg-slate-900/50 p-10 rounded-[3.5rem] border border-white/5 backdrop-blur-2xl shadow-2xl">
+                 <div className="flex gap-6">
+                   <input 
+                     value={username1}
+                     onChange={(e) => setUsername1(e.target.value)}
+                     placeholder="TARGET 1"
+                     className={`flex-1 border rounded-[1.5rem] py-4 px-8 text-xs font-black uppercase tracking-widest focus:outline-none focus:border-blue-500 transition-all ${theme === 'dark' ? 'bg-slate-900/60 border-white/10 text-white' : 'bg-slate-100 border-slate-200 text-slate-900'}`}
+                   />
+                   <div className="flex items-center text-slate-500 font-black italic tracking-tighter">VS</div>
+                   <input 
+                     value={username2}
+                     onChange={(e) => setUsername2(e.target.value)}
+                     placeholder="TARGET 2"
+                     className={`flex-1 border rounded-[1.5rem] py-4 px-8 text-xs font-black uppercase tracking-widest focus:outline-none focus:border-blue-500 transition-all ${theme === 'dark' ? 'bg-slate-900/60 border-white/10 text-white' : 'bg-slate-100 border-slate-200 text-slate-900'}`}
+                   />
+                 </div>
+                 <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-3 ml-2">
+                      <FileText size={14} className="text-blue-500" /> Mission Briefing (Job/Context)
+                    </label>
+                    <textarea 
+                      value={assessmentContext}
+                      onChange={(e) => setAssessmentContext(e.target.value)}
+                      className="w-full h-36 bg-slate-900/80 border border-white/5 rounded-[2rem] p-6 text-xs font-mono text-slate-300 focus:outline-none focus:border-blue-500/50 resize-none transition-all"
+                      placeholder="Paste technical requirements or assessment goals..."
+                    />
+                 </div>
+                 <button onClick={handleCompare} className="w-full py-5 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-[0.3em] text-[11px] rounded-full transition-all shadow-xl shadow-blue-500/30">
+                   Iniciar Engajamento
+                 </button>
+              </div>
+            )}
           </div>
         )}
 
+        {/* SUCCESS STATE */}
         {status === AppStatus.SUCCESS && (
           <div className="max-w-[1400px] mx-auto w-full p-8 pb-20 animate-in slide-in-from-bottom-10 duration-700">
              {isCompareMode && comparison && profile1 && profile2 ? (
@@ -339,14 +517,17 @@ export default function App() {
                 analysis && profile1 && (
                   <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
                     <div className="xl:col-span-8 space-y-10">
-                       <div className={`border p-10 rounded-[3.5rem] flex flex-col md:flex-row gap-10 items-center md:items-start relative overflow-hidden transition-all ${theme === 'dark' ? 'bg-slate-900/30 border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
-                          <img src={profile1.avatar_url} className="w-40 h-40 rounded-[2.5rem] border-4 border-slate-800 shadow-2xl relative z-10" alt="" />
+                       <div className={`border p-12 rounded-[4rem] flex flex-col md:flex-row gap-12 items-center md:items-start relative overflow-hidden transition-all ${theme === 'dark' ? 'bg-slate-900/40 border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
+                          <div className="relative group">
+                             <div className="absolute inset-0 bg-blue-500 rounded-[3rem] blur-xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                             <img src={profile1.avatar_url} className="w-44 h-44 rounded-[3rem] border-4 border-slate-800 shadow-2xl relative z-10" alt="" />
+                          </div>
                           <div className="flex-1 relative z-10">
-                            <h2 className={`text-6xl font-black italic uppercase tracking-tighter leading-none mb-3 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{profile1.name || profile1.login}</h2>
-                            <p className="text-blue-500 font-black uppercase text-sm tracking-widest mb-6 flex items-center gap-2">
-                               <Github size={16} /> @{profile1.login}
+                            <h2 className={`text-6xl md:text-7xl font-black italic uppercase tracking-tighter leading-none mb-4 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{profile1.name || profile1.login}</h2>
+                            <p className="text-blue-500 font-black uppercase text-base tracking-[0.3em] mb-8 flex items-center gap-3">
+                               <Github size={20} /> @{profile1.login}
                             </p>
-                            <p className="italic text-base leading-relaxed border-l-4 border-blue-600/30 pl-6 text-slate-400">{profile1.bio || "No technical DNA summary available for this subject."}</p>
+                            <p className="italic text-lg leading-relaxed border-l-4 border-blue-600/40 pl-8 text-slate-400 font-medium">"{profile1.bio || "Neural DNA summary missing for this subject profile."}"</p>
                           </div>
                        </div>
                        <AnalysisDashboard 
@@ -369,44 +550,46 @@ export default function App() {
           </div>
         )}
 
+        {/* ERROR STATE */}
         {status === AppStatus.ERROR && (
            <div className="flex-1 flex flex-col items-center justify-center p-8">
-              <ShieldAlert size={64} className="text-red-500 mb-4 animate-bounce" />
-              <h2 className="text-2xl font-black uppercase italic tracking-tighter">Neural Link Severed</h2>
-              <p className="text-slate-500 mt-2 font-bold uppercase text-[10px] tracking-widest">{error}</p>
-              <button onClick={() => setStatus(AppStatus.IDLE)} className="mt-8 px-8 py-3 bg-red-500/10 border border-red-500/20 text-red-500 font-black uppercase text-xs rounded-full hover:bg-red-500/20 transition-all">Retry Mission</button>
+              <div className="relative mb-6">
+                <div className="absolute inset-0 bg-red-500 blur-3xl opacity-20 animate-pulse"></div>
+                <ShieldAlert size={80} className="text-red-500 relative z-10 animate-bounce" />
+              </div>
+              <h2 className="text-3xl font-black uppercase italic tracking-tighter">Neural Link Severed</h2>
+              <p className="text-slate-500 mt-3 font-bold uppercase text-xs tracking-widest">{error}</p>
+              <button onClick={() => setStatus(AppStatus.IDLE)} className="mt-10 px-12 py-4 bg-red-500/10 border border-red-500/20 text-red-500 font-black uppercase text-xs rounded-full hover:bg-red-500/20 transition-all tracking-widest">Retry Mission</button>
            </div>
         )}
       </main>
 
-      {/* FIXED FOOTER */}
-      <footer className={`h-12 border-t flex items-center px-6 text-slate-500 text-[9px] font-mono uppercase tracking-widest transition-colors duration-500 ${theme === 'dark' ? 'border-white/5 bg-[#080b14]' : 'border-slate-200 bg-white'}`}>
-        <div className="flex-1 flex items-center gap-8">
-           <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+      {/* FOOTER */}
+      <footer className={`h-12 border-t flex items-center px-6 text-slate-500 text-[10px] font-mono uppercase tracking-[0.3em] transition-colors duration-500 ${theme === 'dark' ? 'border-white/5 bg-[#080b14]' : 'border-slate-200 bg-white'}`}>
+        <div className="flex-1 flex items-center gap-10">
+           <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]"></div>
               <span>GEMINI_3_PRO: ACTIVE</span>
            </div>
-           <div className="flex items-center gap-2">
-              <GitFork size={12} className="text-slate-600" />
+           <div className="flex items-center gap-3">
+              <GitFork size={14} className="text-slate-600" />
               <span>GITHUB_API_v4: STABLE</span>
            </div>
         </div>
-        <div className="flex items-center gap-8">
-           <div className="flex items-center gap-2">
-              <Wifi size={12} className="text-blue-500" />
+        <div className="flex items-center gap-10">
+           <div className="flex items-center gap-3">
+              <Wifi size={14} className="text-blue-500" />
               <span>LATENCY: 89MS</span>
            </div>
-           <span>© 2025 NEURAL OPERATIONS UNIT</span>
+           <span className="opacity-50">© 2025 NEURAL OPERATIONS UNIT</span>
         </div>
       </footer>
 
       <PricingModal isOpen={isPricingOpen} onClose={() => setIsPricingOpen(false)} />
       {isPipelineManagerOpen && (
-        <PipelineManager
-          folders={folders}
-          onClose={() => setIsPipelineManagerOpen(false)}
-          onCreateFolder={handleCreateFolder}
-          onEditFolder={handleEditFolder}
+        <PipelineManager 
+          folders={folders} 
+          onClose={() => setIsPipelineManagerOpen(false)} 
           onDeleteFolder={(id) => setFolders(folders.filter(f => f.id !== id))}
           onRemoveCandidate={(fId, user) => setFolders(folders.map(f => f.id === fId ? {...f, candidates: f.candidates.filter(c => c.username !== user)} : f))}
         />
