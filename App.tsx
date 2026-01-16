@@ -247,7 +247,7 @@ export default function App() {
   // --- LOGIN SCREEN (DARK-OPS HIGH FIDELITY) ---
   if (!sessionUser) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8 grid-pattern transition-colors duration-500 bg-[#080b14] text-white overflow-hidden relative">
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 grid-pattern bg-[#080b14] text-white overflow-hidden relative">
          <div className="scanner-laser"></div>
          <div className="relative mb-12 animate-float">
             <div className="absolute inset-0 bg-blue-600 blur-[150px] opacity-20 animate-pulse-slow"></div>
@@ -284,7 +284,7 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen selection:bg-blue-500/30 overflow-x-hidden flex flex-col grid-pattern transition-colors duration-500 ${theme === 'dark' ? 'bg-[#080b14] text-white' : 'bg-[#080b14] text-white'}`}>
+    <div className={`min-h-screen selection:bg-blue-500/30 overflow-x-hidden flex flex-col grid-pattern transition-colors duration-500 bg-[#080b14] text-white`}>
       
       {/* HEADER - REFINED TO MATCH SCREENSHOT */}
       <header className="fixed top-0 left-0 right-0 z-50 h-16 backdrop-blur-xl border-b border-white/5 flex items-center px-8 bg-[#080b14]/90">
@@ -346,7 +346,7 @@ export default function App() {
       </header>
 
       <main className="pt-16 flex-1 flex flex-col relative">
-        {/* LOADING STATE - REMAINS TACTICAL */}
+        {/* LOADING STATE */}
         {status === AppStatus.LOADING && (
           <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center transition-all duration-700 bg-[#080b14]">
              <div className="scanner-laser"></div>
@@ -403,7 +403,7 @@ export default function App() {
           </div>
         )}
 
-        {/* IDLE STATE - UPDATED TO MATCH SCREENSHOT EXACTLY */}
+        {/* IDLE STATE - REPLICATING THE SCREENSHOT EXACTLY */}
         {status === AppStatus.IDLE && (
           <div className="flex-1 flex flex-col items-center justify-center p-8 animate-in fade-in duration-1000 relative">
             <div className="relative mb-16 animate-float">
@@ -463,13 +463,13 @@ export default function App() {
                     </label>
                     <textarea value={assessmentContext} onChange={(e) => setAssessmentContext(e.target.value)} className="w-full h-40 bg-slate-900/80 border border-white/5 rounded-3xl p-8 text-xs font-mono text-slate-300 focus:outline-none focus:border-blue-500/50 resize-none transition-all custom-scrollbar" placeholder="Paste technical requirements or assessment goals..." />
                  </div>
-                 <button onClick={handleCompare} className="w-full py-6 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-[0.4em] text-[12px] rounded-3xl transition-all shadow-2xl shadow-blue-500/40 active:scale-[0.98]">
+                 <button onClick={handleCompare} className="w-full py-6 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-[0.4em] text-[12px] rounded-3xl transition-all shadow-2xl shadow-blue-500/40">
                    Iniciar Engajamento AI
                  </button>
               </div>
             )}
 
-            {/* Bottom Status Indicators - Match Screenshot */}
+            {/* Bottom Status Indicators */}
             <div className="mt-24 grid grid-cols-1 md:grid-cols-2 gap-10 opacity-40">
                <div className="flex items-center gap-4 px-8 py-3 rounded-2xl border border-white/5 bg-white/[0.01]">
                   <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
@@ -546,7 +546,7 @@ export default function App() {
               </div>
               <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white">Neural Link Severed</h2>
               <p className="text-slate-500 mt-4 font-bold uppercase text-sm tracking-[0.4em]">{error}</p>
-              <button onClick={() => setStatus(AppStatus.IDLE)} className="mt-12 px-16 py-5 bg-red-500/10 border border-red-500/20 text-red-500 font-black uppercase text-xs rounded-3xl hover:bg-red-500/20 transition-all tracking-[0.5em] shadow-2xl active:scale-95">Retry Mission</button>
+              <button onClick={() => setStatus(AppStatus.IDLE)} className="mt-12 px-16 py-5 bg-red-500/10 border border-red-500/20 text-red-500 font-black uppercase text-xs rounded-3xl hover:bg-red-500/20 transition-all tracking-[0.5em] shadow-2xl">Retry Mission</button>
            </div>
         )}
       </main>
