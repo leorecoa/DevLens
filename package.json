@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "description": "Advanced developer sourcing and analysis platform powered by Gemini 3.",
   "main": "index.tsx",
+  "type": "module",
   "scripts": {
     "start": "vite",
     "dev": "vite",
