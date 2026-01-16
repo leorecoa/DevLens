@@ -41,7 +41,7 @@ export const syncUserProfile = async (sub: UserSubscription) => {
 
   if (authError || !user) throw authError;
 
-  const { error } = await supabase.from('users').upsert(
+  const { error } = await supabase.from('profiles').upsert(
     {
       id: user.id,
       tier: sub.tier,
@@ -62,7 +62,7 @@ export const fetchUserProfile = async (): Promise<UserSubscription | null> => {
   if (!user) return null;
 
   const { data, error } = await supabase
-    .from('users')
+    .from('profiles')
     .select('tier, credits_remaining, total_analyses')
     .eq('id', user.id)
     .maybeSingle();
