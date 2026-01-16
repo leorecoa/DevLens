@@ -1,11 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  Github,
-  Loader2,
-  ShieldAlert
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Github, Loader2, ShieldAlert } from 'lucide-react';
 
-import { analyzeProfile, compareProfiles } from './services/geminiService';
 import {
   supabase,
   fetchUserProfile,
@@ -16,28 +11,18 @@ import {
   signOut
 } from './services/supabaseService';
 
-import {
-  AppStatus,
-  AIAnalysis,
-  GitHubProfile,
-  Repository,
-  ComparisonAnalysis,
-  UserSubscription,
-  PipelineFolder,
-  SavedCandidate
-} from './types';
+import { AppStatus, UserSubscription, PipelineFolder } from './types';
 
 const DEFAULT_FREE_LIMIT = 10;
 
 export default function App() {
-  /* ======================== AUTH ======================== */
-  // undefined = loading | null = logged out | object = logged in
+  /* ==================== AUTH ==================== */
   const [sessionUser, setSessionUser] = useState<any | undefined>(undefined);
 
-  /* ======================== INIT ======================== */
+  /* ==================== INIT ==================== */
   const [isInitialized, setIsInitialized] = useState(false);
 
-  /* ======================== DATA ======================== */
+  /* ==================== DATA ==================== */
   const [sub, setSub] = useState<UserSubscription>({
     tier: 'FREE',
     creditsRemaining: DEFAULT_FREE_LIMIT,
@@ -46,33 +31,31 @@ export default function App() {
 
   const [folders, setFolders] = useState<PipelineFolder[]>([]);
 
-  /* ======================== UI ======================== */
+  /* ==================== UI ==================== */
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [error, setError] = useState<string | null>(null);
 
-  /* ======================== AUTH LISTENER ======================== */
+  /* ==================== AUTH LISTENER ==================== */
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSessionUser(data.session?.user ?? null);
     });
 
-    const {
-      data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSessionUser(session?.user ?? null);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  /* ======================== CLEAN OAUTH HASH ======================== */
+  /* ==================== CLEAN OAUTH HASH ==================== */
   useEffect(() => {
     if (window.location.hash.includes('access_token')) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
 
-  /* ======================== INIT USER DATA ======================== */
+  /* ==================== INIT USER DATA ==================== */
   useEffect(() => {
     if (!sessionUser) {
       setIsInitialized(false);
@@ -89,13 +72,13 @@ export default function App() {
 
     const init = async () => {
       try {
-        const remoteSub = await fetchUserProfile();
-        const remoteFolders = await fetchFolders();
+        const remoteSub = await fetchUserProfile(sessionUser.id);
+        const remoteFolders = await fetchFolders(sessionUser.id);
 
         if (remoteSub) setSub(remoteSub);
         if (remoteFolders) setFolders(remoteFolders);
       } catch (e) {
-        console.warn('Supabase init deferred');
+        console.warn('Supabase init deferred', e);
       } finally {
         setIsInitialized(true);
       }
@@ -104,14 +87,14 @@ export default function App() {
     init();
   }, [sessionUser, isInitialized]);
 
-  /* ======================== CLOUD SYNC ======================== */
+  /* ==================== CLOUD SYNC ==================== */
   useEffect(() => {
     if (!sessionUser || !isInitialized) return;
 
     const timer = setTimeout(async () => {
       try {
-        await syncUserProfile(sub);
-        await syncFolders(folders);
+        await syncUserProfile(sessionUser.id, sub);
+        await syncFolders(sessionUser.id, folders);
       } catch (e) {
         console.error('Sync failed', e);
       }
@@ -120,7 +103,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [sub, folders, sessionUser, isInitialized]);
 
-  /* ======================== LOADING SCREEN ======================== */
+  /* ==================== LOADING SCREEN ==================== */
   if (sessionUser === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-white">
@@ -129,7 +112,7 @@ export default function App() {
     );
   }
 
-  /* ======================== LOGIN SCREEN ======================== */
+  /* ==================== LOGIN SCREEN ==================== */
   if (!sessionUser) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white gap-6">
@@ -145,7 +128,7 @@ export default function App() {
     );
   }
 
-  /* ======================== APP ======================== */
+  /* ==================== APP ==================== */
   return (
     <>
       {/* Seu layout principal entra aqui */}

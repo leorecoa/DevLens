@@ -1,117 +1,76 @@
-/// <reference types="vite/client" />
-
 import { createClient } from '@supabase/supabase-js';
-import { PipelineFolder, UserSubscription } from '../types';
+import { UserSubscription, PipelineFolder } from '../types';
 
-/* ======================== CONFIG ======================== */
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error('Supabase env vars missing');
-}
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-/* ======================== AUTH ======================== */
+// ==================== AUTH ====================
 export const signInWithGitHub = async () => {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'github',
-    options: {
-      redirectTo: 'http://localhost:5173'
-    }
-  });
-  if (error) throw error;
+  await supabase.auth.signInWithOAuth({ provider: 'github' });
 };
 
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  await supabase.auth.signOut();
 };
 
-/* ======================== PROFILE ======================== */
-/**
- * auth.uid() → users.id
- */
-export const syncUserProfile = async (sub: UserSubscription) => {
-  const {
-    data: { user },
-    error: authError
-  } = await supabase.auth.getUser();
+// ==================== USER PROFILE ====================
+export const fetchUserProfile = async (userId: string): Promise<UserSubscription | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
 
-  if (authError || !user) throw authError;
-
-  const { error } = await supabase.from('profiles').upsert(
-    {
-      id: user.id,
-      tier: sub.tier,
-      credits_remaining: sub.creditsRemaining,
-      total_analyses: sub.totalAnalyses
-    },
-    { onConflict: 'id' }
-  );
-
-  if (error) throw error;
+    if (error) throw error;
+    return data as UserSubscription;
+  } catch (err) {
+    console.error('Erro ao buscar perfil:', err);
+    return null;
+  }
 };
 
-export const fetchUserProfile = async (): Promise<UserSubscription | null> => {
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user) return null;
-
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('tier, credits_remaining, total_analyses')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (error || !data) return null;
-
-  return {
-    tier: data.tier,
-    creditsRemaining: data.credits_remaining,
-    totalAnalyses: data.total_analyses
-  };
+export const syncUserProfile = async (userId: string, profile: UserSubscription) => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .upsert([{ id: userId, ...profile }]);
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Erro ao sincronizar perfil do usuário:', err);
+    return null;
+  }
 };
 
-/* ======================== PIPELINES ======================== */
-/**
- * user_pipelines.user_id = auth.uid()
- */
-export const syncFolders = async (folders: PipelineFolder[]) => {
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+// ==================== FOLDERS ====================
+export const fetchFolders = async (userId: string): Promise<PipelineFolder[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('folders')
+      .select('*')
+      .eq('user_id', userId);
 
-  if (!user) throw new Error('Not authenticated');
-
-  const { error } = await supabase.from('user_pipelines').upsert(
-    {
-      user_id: user.id,
-      folders_json: folders
-    },
-    { onConflict: 'user_id' }
-  );
-
-  if (error) throw error;
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error('Erro ao buscar pastas:', err);
+    return [];
+  }
 };
 
-export const fetchFolders = async (): Promise<PipelineFolder[] | null> => {
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+export const syncFolders = async (userId: string, folders: PipelineFolder[]) => {
+  try {
+    const updates = folders.map(folder => ({ ...folder, user_id: userId }));
+    const { data, error } = await supabase
+      .from('folders')
+      .upsert(updates);
 
-  if (!user) return null;
-
-  const { data, error } = await supabase
-    .from('user_pipelines')
-    .select('folders_json')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (error || !data) return null;
-
-  return data.folders_json;
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('Erro ao sincronizar pastas:', err);
+    return [];
+  }
 };
