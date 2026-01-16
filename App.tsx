@@ -16,13 +16,13 @@ import { AppStatus, UserSubscription, PipelineFolder } from './types';
 const DEFAULT_FREE_LIMIT = 10;
 
 export default function App() {
-  /* ==================== AUTH ==================== */
+  // ==================== AUTH ====================
   const [sessionUser, setSessionUser] = useState<any | undefined>(undefined);
 
-  /* ==================== INIT ==================== */
+  // ==================== INIT ====================
   const [isInitialized, setIsInitialized] = useState(false);
 
-  /* ==================== DATA ==================== */
+  // ==================== DATA ====================
   const [sub, setSub] = useState<UserSubscription>({
     tier: 'FREE',
     creditsRemaining: DEFAULT_FREE_LIMIT,
@@ -31,11 +31,11 @@ export default function App() {
 
   const [folders, setFolders] = useState<PipelineFolder[]>([]);
 
-  /* ==================== UI ==================== */
+  // ==================== UI ====================
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [error, setError] = useState<string | null>(null);
 
-  /* ==================== AUTH LISTENER ==================== */
+  // ==================== AUTH LISTENER ====================
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSessionUser(data.session?.user ?? null);
@@ -48,14 +48,14 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  /* ==================== CLEAN OAUTH HASH ==================== */
+  // ==================== CLEAN OAUTH HASH ====================
   useEffect(() => {
     if (window.location.hash.includes('access_token')) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
 
-  /* ==================== INIT USER DATA ==================== */
+  // ==================== INIT USER DATA ====================
   useEffect(() => {
     if (!sessionUser) {
       setIsInitialized(false);
@@ -72,11 +72,14 @@ export default function App() {
 
     const init = async () => {
       try {
+        console.log('Iniciando fetch do perfil e pastas do usuário...');
         const remoteSub = await fetchUserProfile(sessionUser.id);
         const remoteFolders = await fetchFolders(sessionUser.id);
 
         if (remoteSub) setSub(remoteSub);
         if (remoteFolders) setFolders(remoteFolders);
+
+        console.log('Dados carregados:', { remoteSub, remoteFolders });
       } catch (e) {
         console.warn('Supabase init deferred', e);
       } finally {
@@ -87,7 +90,7 @@ export default function App() {
     init();
   }, [sessionUser, isInitialized]);
 
-  /* ==================== CLOUD SYNC ==================== */
+  // ==================== CLOUD SYNC ====================
   useEffect(() => {
     if (!sessionUser || !isInitialized) return;
 
@@ -103,7 +106,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [sub, folders, sessionUser, isInitialized]);
 
-  /* ==================== LOADING SCREEN ==================== */
+  // ==================== LOADING SCREEN ====================
   if (sessionUser === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-white">
@@ -112,12 +115,11 @@ export default function App() {
     );
   }
 
-  /* ==================== LOGIN SCREEN ==================== */
+  // ==================== LOGIN SCREEN ====================
   if (!sessionUser) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white gap-6">
         <h1 className="text-3xl font-bold">DevLens</h1>
-
         <button
           onClick={signInWithGitHub}
           className="flex items-center gap-4 px-12 py-5 bg-white text-black rounded-full"
@@ -128,11 +130,9 @@ export default function App() {
     );
   }
 
-  /* ==================== APP ==================== */
+  // ==================== APP ====================
   return (
-    <>
-      {/* Seu layout principal entra aqui */}
-
+    <div className="min-h-screen bg-black text-white p-6">
       <button
         onClick={signOut}
         className="fixed top-6 right-6 text-sm text-white opacity-70 hover:opacity-100"
@@ -140,12 +140,19 @@ export default function App() {
         Sign out
       </button>
 
+      <h1 className="text-2xl font-bold mb-4">Bem-vindo, {sessionUser.email}</h1>
+
+      {/* DEBUG: mostra dados carregados */}
+      <pre className="text-sm bg-gray-800 p-4 rounded-md overflow-auto">
+        {JSON.stringify({ sub, folders }, null, 2)}
+      </pre>
+
       {status === AppStatus.ERROR && (
         <div className="fixed inset-0 flex flex-col items-center justify-center bg-black text-red-500 gap-4">
           <ShieldAlert size={64} />
           <p>{error}</p>
         </div>
       )}
-    </>
+    </div>
   );
 }
