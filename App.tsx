@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Github, Terminal, Loader2, Sparkles, Swords, Users, Folders, Database,
-  ShieldCheck, Sun, Moon, Activity, Crown, Search, Wifi,
-  ShieldAlert, Cpu as CpuIcon
+  Github,
+  Loader2,
+  ShieldAlert
 } from 'lucide-react';
 
 import { analyzeProfile, compareProfiles } from './services/geminiService';
@@ -27,23 +27,15 @@ import {
   SavedCandidate
 } from './types';
 
-import { AnalysisDashboard } from './components/AnalysisDashboard';
-import { ComparisonDashboard } from './components/ComparisonDashboard';
-import { ChatWidget } from './components/ChatWidget';
-import { PricingModal } from './components/PricingModal';
-import { PipelineManager } from './components/PipelineManager';
-
 const DEFAULT_FREE_LIMIT = 10;
 
 export default function App() {
   /* ======================== AUTH ======================== */
-  const [sessionUser, setSessionUser] = useState<any>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  // undefined = loading | null = logged out | object = logged in
+  const [sessionUser, setSessionUser] = useState<any | undefined>(undefined);
 
-  /* ======================== UI ======================== */
-  const [theme, setTheme] = useState(() => localStorage.getItem('devlens_theme') || 'dark');
-  const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
-  const [error, setError] = useState<string | null>(null);
+  /* ======================== INIT ======================== */
+  const [isInitialized, setIsInitialized] = useState(false);
 
   /* ======================== DATA ======================== */
   const [sub, setSub] = useState<UserSubscription>({
@@ -53,28 +45,10 @@ export default function App() {
   });
 
   const [folders, setFolders] = useState<PipelineFolder[]>([]);
-  const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
-  const [comparison, setComparison] = useState<ComparisonAnalysis | null>(null);
 
-  const [profile1, setProfile1] = useState<GitHubProfile | null>(null);
-  const [profile2, setProfile2] = useState<GitHubProfile | null>(null);
-  const [repos1, setRepos1] = useState<Repository[]>([]);
-  const [repos2, setRepos2] = useState<Repository[]>([]);
-
-  /* ======================== INPUTS ======================== */
-  const [username1, setUsername1] = useState('gaearon');
-  const [username2, setUsername2] = useState('danabramov');
-  const [isCompareMode, setIsCompareMode] = useState(false);
-  const [assessmentContext, setAssessmentContext] = useState(
-    '- Priority: Senior React\n- Context: Core contributor\n'
-  );
-
-  /* ======================== TERMINAL ======================== */
-  const [terminalLogs, setTerminalLogs] = useState<string[]>([]);
-  const terminalRef = useRef<HTMLDivElement>(null);
-
-  const log = (msg: string) =>
-    setTerminalLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`].slice(-8));
+  /* ======================== UI ======================== */
+  const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
+  const [error, setError] = useState<string | null>(null);
 
   /* ======================== AUTH LISTENER ======================== */
   useEffect(() => {
@@ -82,20 +56,32 @@ export default function App() {
       setSessionUser(data.session?.user ?? null);
     });
 
-    const { data: { subscription } } =
-      supabase.auth.onAuthStateChange((_e, session) =>
-        setSessionUser(session?.user ?? null)
-      );
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSessionUser(session?.user ?? null);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  /* ======================== INIT DATA ======================== */
+  /* ======================== CLEAN OAUTH HASH ======================== */
+  useEffect(() => {
+    if (window.location.hash.includes('access_token')) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  /* ======================== INIT USER DATA ======================== */
   useEffect(() => {
     if (!sessionUser) {
       setIsInitialized(false);
       setFolders([]);
-      setSub({ tier: 'FREE', creditsRemaining: DEFAULT_FREE_LIMIT, totalAnalyses: 0 });
+      setSub({
+        tier: 'FREE',
+        creditsRemaining: DEFAULT_FREE_LIMIT,
+        totalAnalyses: 0
+      });
       return;
     }
 
@@ -105,9 +91,10 @@ export default function App() {
       try {
         const remoteSub = await fetchUserProfile();
         const remoteFolders = await fetchFolders();
+
         if (remoteSub) setSub(remoteSub);
         if (remoteFolders) setFolders(remoteFolders);
-      } catch {
+      } catch (e) {
         console.warn('Supabase init deferred');
       } finally {
         setIsInitialized(true);
@@ -115,11 +102,11 @@ export default function App() {
     };
 
     init();
-  }, [sessionUser]);
+  }, [sessionUser, isInitialized]);
 
   /* ======================== CLOUD SYNC ======================== */
   useEffect(() => {
-    if (!isInitialized || !sessionUser) return;
+    if (!sessionUser || !isInitialized) return;
 
     const timer = setTimeout(async () => {
       try {
@@ -128,112 +115,51 @@ export default function App() {
       } catch (e) {
         console.error('Sync failed', e);
       }
-    }, 1500);
+    }, 1200);
 
     return () => clearTimeout(timer);
-  }, [sub, folders, isInitialized, sessionUser]);
+  }, [sub, folders, sessionUser, isInitialized]);
 
-  /* ======================== THEME ======================== */
-  useEffect(() => {
-    localStorage.setItem('devlens_theme', theme);
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-  }, [theme]);
-
-  /* ======================== GITHUB ======================== */
-  const fetchGitHub = async (user: string) => {
-    log(`Fetching @${user}`);
-    const [p, r] = await Promise.all([
-      fetch(`https://api.github.com/users/${user}`),
-      fetch(`https://api.github.com/users/${user}/repos?per_page=15&sort=updated`)
-    ]);
-    if (!p.ok) throw new Error(`GitHub user ${user} not found`);
-    return { p: await p.json(), r: await r.json() };
-  };
-
-  /* ======================== ACTIONS ======================== */
-  const handleAnalyze = async () => {
-    if (!username1) return;
-    if (sub.tier === 'FREE' && sub.creditsRemaining <= 0) return;
-
-    setStatus(AppStatus.LOADING);
-    setTerminalLogs([]);
-    setError(null);
-
-    try {
-      const d = await fetchGitHub(username1);
-      setProfile1(d.p);
-      setRepos1(d.r);
-
-      const ai = await analyzeProfile(username1);
-      setAnalysis(ai);
-
-      setSub(s => ({
-        ...s,
-        creditsRemaining: s.tier === 'PRO' ? s.creditsRemaining : s.creditsRemaining - 1,
-        totalAnalyses: s.totalAnalyses + 1
-      }));
-
-      setStatus(AppStatus.SUCCESS);
-    } catch (e: any) {
-      setError(e.message);
-      setStatus(AppStatus.ERROR);
-    }
-  };
-
-  const handleCompare = async () => {
-    if (!username1 || !username2) return;
-    setStatus(AppStatus.LOADING);
-    setError(null);
-
-    try {
-      const [d1, d2] = await Promise.all([
-        fetchGitHub(username1),
-        fetchGitHub(username2)
-      ]);
-
-      setProfile1(d1.p);
-      setProfile2(d2.p);
-      setRepos1(d1.r);
-      setRepos2(d2.r);
-
-      const c = await compareProfiles(username1, username2, assessmentContext);
-      setComparison(c);
-
-      setStatus(AppStatus.SUCCESS);
-    } catch (e: any) {
-      setError(e.message);
-      setStatus(AppStatus.ERROR);
-    }
-  };
-
-  /* ======================== PIPELINE ======================== */
-  const addToPipeline = (folderId: string, candidate: SavedCandidate) => {
-    setFolders(f =>
-      f.map(x =>
-        x.id === folderId
-          ? { ...x, candidates: [...x.candidates.filter(c => c.username !== candidate.username), candidate] }
-          : x
-      )
-    );
-  };
-
-  /* ======================== RENDER ======================== */
-  if (!sessionUser) {
+  /* ======================== LOADING SCREEN ======================== */
+  if (sessionUser === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-white">
-        <button onClick={signInWithGitHub} className="flex items-center gap-4 px-12 py-5 bg-white text-black rounded-full">
+        <Loader2 size={48} className="animate-spin" />
+      </div>
+    );
+  }
+
+  /* ======================== LOGIN SCREEN ======================== */
+  if (!sessionUser) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white gap-6">
+        <h1 className="text-3xl font-bold">DevLens</h1>
+
+        <button
+          onClick={signInWithGitHub}
+          className="flex items-center gap-4 px-12 py-5 bg-white text-black rounded-full"
+        >
           <Github /> Sign in with GitHub
         </button>
       </div>
     );
   }
 
+  /* ======================== APP ======================== */
   return (
     <>
-      {/* TODO: mantém seu layout atual aqui */}
+      {/* Seu layout principal entra aqui */}
+
+      <button
+        onClick={signOut}
+        className="fixed top-6 right-6 text-sm text-white opacity-70 hover:opacity-100"
+      >
+        Sign out
+      </button>
+
       {status === AppStatus.ERROR && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black">
-          <ShieldAlert size={80} className="text-red-500" />
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-black text-red-500 gap-4">
+          <ShieldAlert size={64} />
           <p>{error}</p>
         </div>
       )}
