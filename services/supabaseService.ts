@@ -1,9 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { UserSubscription, PipelineFolder } from '../types';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL!;
+const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY!;
 export const supabase = createClient(supabaseUrl, supabaseKey);
+
 
 // ==================== AUTH ====================
 export const signInWithGitHub = async () => {
