@@ -1,110 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Github, Loader2, ShieldAlert } from 'lucide-react';
 
-import {
-  supabase,
-  fetchUserProfile,
-  fetchFolders,
-  syncUserProfile,
-  syncFolders,
-  signInWithGitHub,
-  signOut
-} from './services/supabaseService';
+import { signInWithGitHub, signOut } from './services/supabaseService';
+import { useAuth } from './hooks/useAuth';
+import { useAppData } from './hooks/useAppData';
 
-import { AppStatus, UserSubscription, PipelineFolder } from './types';
-
-const DEFAULT_FREE_LIMIT = 10;
+import { AppStatus } from './types';
+import Dashboard from './pages/Dashboard';
 
 export default function App() {
-  // ==================== AUTH ====================
-  const [sessionUser, setSessionUser] = useState<any | undefined>(undefined);
-
-  // ==================== INIT ====================
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  // ==================== DATA ====================
-  const [sub, setSub] = useState<UserSubscription>({
-    tier: 'FREE',
-    creditsRemaining: DEFAULT_FREE_LIMIT,
-    totalAnalyses: 0
-  });
-
-  const [folders, setFolders] = useState<PipelineFolder[]>([]);
+  const sessionUser = useAuth();
+  const { folders } = useAppData(sessionUser);
 
   // ==================== UI ====================
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [error, setError] = useState<string | null>(null);
-
-  // ==================== AUTH LISTENER ====================
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSessionUser(data.session?.user ?? null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSessionUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // ==================== CLEAN OAUTH HASH ====================
-  useEffect(() => {
-    if (window.location.hash.includes('access_token')) {
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, []);
-
-  // ==================== INIT USER DATA ====================
-  useEffect(() => {
-    if (!sessionUser) {
-      setIsInitialized(false);
-      setFolders([]);
-      setSub({
-        tier: 'FREE',
-        creditsRemaining: DEFAULT_FREE_LIMIT,
-        totalAnalyses: 0
-      });
-      return;
-    }
-
-    if (isInitialized) return;
-
-    const init = async () => {
-      try {
-        console.log('Iniciando fetch do perfil e pastas do usuário...');
-        const remoteSub = await fetchUserProfile(sessionUser.id);
-        const remoteFolders = await fetchFolders(sessionUser.id);
-
-        if (remoteSub) setSub(remoteSub);
-        if (remoteFolders) setFolders(remoteFolders);
-
-        console.log('Dados carregados:', { remoteSub, remoteFolders });
-      } catch (e) {
-        console.warn('Supabase init deferred', e);
-      } finally {
-        setIsInitialized(true);
-      }
-    };
-
-    init();
-  }, [sessionUser, isInitialized]);
-
-  // ==================== CLOUD SYNC ====================
-  useEffect(() => {
-    if (!sessionUser || !isInitialized) return;
-
-    const timer = setTimeout(async () => {
-      try {
-        await syncUserProfile(sessionUser.id, sub);
-        await syncFolders(sessionUser.id, folders);
-      } catch (e) {
-        console.error('Sync failed', e);
-      }
-    }, 1200);
-
-    return () => clearTimeout(timer);
-  }, [sub, folders, sessionUser, isInitialized]);
 
   // ==================== LOADING SCREEN ====================
   if (sessionUser === undefined) {
@@ -142,10 +52,7 @@ export default function App() {
 
       <h1 className="text-2xl font-bold mb-4">Bem-vindo, {sessionUser.email}</h1>
 
-      {/* DEBUG: mostra dados carregados */}
-      <pre className="text-sm bg-gray-800 p-4 rounded-md overflow-auto">
-        {JSON.stringify({ sub, folders }, null, 2)}
-      </pre>
+      <Dashboard folders={folders} />
 
       {status === AppStatus.ERROR && (
         <div className="fixed inset-0 flex flex-col items-center justify-center bg-black text-red-500 gap-4">

@@ -69,6 +69,8 @@ export interface SavedCandidate {
 export interface PipelineFolder {
   id: string;
   name: string;
+  path?: string;
+  fileCount?: number;
   color: string;
   candidates: SavedCandidate[];
 }
