@@ -1,30 +1,15 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { PipelineFolder, UserSubscription } from '../types';
 
-// Função auxiliar para obter variáveis de ambiente de forma segura em ambientes Vite/Node
-const getEnv = (key: string): string => {
-  // @ts-ignore
-  return (typeof process !== 'undefined' && process.env && process.env[key]) || 
-         // @ts-ignore
-         (import.meta.env && import.meta.env[key]) || 
-         '';
-};
+// Use environment variables from process.env with the provided keys as default fallbacks.
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ubqmetsmfvzmagwlnzfm.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7H4TOD_RSu7Osny2chEjDg_n8N7a3Mj';
 
-const SUPABASE_URL = getEnv('SUPABASE_URL') || 'https://ubqmetsmfvzmagwlnzfm.supabase.co';
-const SUPABASE_ANON_KEY = getEnv('SUPABASE_ANON_KEY') || 'sb_publishable_7H4TOD_RSu7Osny2chEjDg_n8N7a3Mj';
-
-if (!SUPABASE_URL || SUPABASE_URL === 'UNDEFINED') {
-  console.error("ERRO CRÍTICO: SUPABASE_URL não detectada. Verifique as variáveis de ambiente.");
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL === 'UNDEFINED') {
+  console.warn("Supabase credentials might be missing or invalid. Check your environment variables.");
 }
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
-  }
-});
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /**
  * Returns the current authenticated user ID or a fallback local ID.
@@ -45,23 +30,13 @@ export const getUserId = async () => {
  * Initiates GitHub OAuth sign-in flow.
  */
 export const signInWithGitHub = async () => {
-  console.log("Iniciando Neural Auth Protocol via GitHub...");
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'github',
     options: {
-      redirectTo: window.location.origin,
-      // Garante que o usuário veja a tela de autorização caso tenha problemas
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'consent',
-      },
+      redirectTo: window.location.origin
     }
   });
-  
-  if (error) {
-    console.error("Falha no Uplink de Autenticação:", error.message);
-    throw error;
-  }
+  if (error) throw error;
 };
 
 /**
@@ -71,7 +46,6 @@ export const signOut = async () => {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
   localStorage.removeItem('devlens_instance_id');
-  window.location.reload(); // Limpa o estado da aplicação
 };
 
 export const syncUserProfile = async (sub: UserSubscription) => {
